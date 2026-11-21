@@ -181,6 +181,8 @@ export async function installMock(context, log = []) {
     if (!p.endsWith('.json')) return route.fulfill({ status: 200, contentType: 'text/html', headers: { 'content-security-policy': "require-trusted-types-for 'script'" }, body: NATIVE_HTML });
 
     const q = p.replace(/\.json$/, '');
+    // Simulate Reddit's script blocking: page requests to r/blockedsub get a 403 HTML page.
+    if (/^\/r\/blockedsub\b/i.test(q) && u.searchParams.has('sr_detail')) return route.fulfill({ status: 403, contentType: 'text/html', body: '<h1>whoa there, pardner!</h1>' });
     let m;
     if (q === '/api/me') return json({ kind: 't2', data: { name: ME, modhash: 'test-modhash', inbox_count: state.inbox, icon_img: 'https://styles.redditmedia.com/icon_me.png?w=64&h=64', link_karma: 12840, comment_karma: 40211 } });
     if (q === '/subreddits/mine/subscriber') return json(listing(['programming', 'Design', 'rust', 'EarthPorn'].map((n) => about(n)), null));

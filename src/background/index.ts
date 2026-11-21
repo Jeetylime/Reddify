@@ -37,7 +37,30 @@ async function updateBadge() {
 
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === ALARM) void updateBadge(); });
 
-chrome.runtime.onMessage.addListener((msg: Msg, _sender, reply) => {
+/** Fetch fallback for the content script; only ever reddit.com GETs. Tries a few equivalent URLs. */
+async function fetchJson(url: string) {
+  const u = new URL(url);
+  if (!/^(www\.|old\.)?reddit\.com$/.test(u.hostname)) return { status: 400, text: '', via: 'rejected' };
+  const bare = new URL(u); bare.searchParams.delete('sr_detail');
+  const old = new URL(bare); old.hostname = 'old.reddit.com';
+  let last = { status: 0, text: '', via: 'worker' };
+  for (const [cand, via] of [[u, 'worker'], [bare, 'worker-bare'], [old, 'old.reddit']] as [URL, string][]) {
+    try {
+      const res = await fetch(cand.toString(), { credentials: 'include', headers: { Accept: 'application/json' } });
+      last = { status: res.status, text: await res.text(), via };
+      if (res.ok && /^\s*[[{]/.test(last.text)) return last;
+      if (res.status === 404) return last;
+    } catch { /* try next */ }
+  }
+  return last;
+}
+
+chrome.runtime.onMessage.addListener((msg: Msg, sender, reply) => {
+  if (msg.type === 'fetch-json') {
+    if (sender.id !== chrome.runtime.id) return false;
+    void fetchJson(msg.url).then(reply);
+    return true;
+  }
   if (msg.type === 'open-options') { void chrome.runtime.openOptionsPage(); reply(true); }
   else if (msg.type === 'refresh-badge') { void updateBadge().then(() => reply(true)); return true; }
   return false;

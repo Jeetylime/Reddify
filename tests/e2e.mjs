@@ -461,6 +461,11 @@ await test('follows URL changes made outside Reddify (e.g. by Reddit’s hidden 
   await page.locator('.head-card h2', { hasText: 'r/rust' }).waitFor({ timeout: 4000 });
 });
 
+await test('falls back when Reddit blocks a page-script request (403)', async () => {
+  await page.goto(`${R}/r/blockedsub`);
+  await posts().first().waitFor({ timeout: 10000 });
+});
+
 await test('no unexpected console errors', async () => {
   assert(errors.length === 0, `errors:\n${errors.join('\n')}`);
 });
