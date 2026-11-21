@@ -152,7 +152,7 @@ function svgImage(url) {
   </svg>`;
 }
 
-const NATIVE_HTML = `<!doctype html><html><head><title>Reddit - The heart of the internet</title></head>
+const NATIVE_HTML = `<!doctype html><html><head><title>Reddit - The heart of the internet</title><style>/* like reddit.com: hide custom elements until defined */ :not(:defined) { visibility: hidden; }</style></head>
 <body style="margin:0;font-family:sans-serif;background:#fff"><shreddit-app id="native-reddit"><h1 style="padding:20px">Native Reddit page</h1><p style="padding:0 20px">This stands in for Reddit's own UI.</p></shreddit-app></body></html>`;
 
 /** Installs the fake Reddit on a Playwright BrowserContext. `log` collects write actions (votes, saves…). */
@@ -178,7 +178,7 @@ export async function installMock(context, log = []) {
       if (p === '/api/read_all_messages') state.inbox = 0;
       return json({});
     }
-    if (!p.endsWith('.json')) return route.fulfill({ status: 200, contentType: 'text/html', body: NATIVE_HTML });
+    if (!p.endsWith('.json')) return route.fulfill({ status: 200, contentType: 'text/html', headers: { 'content-security-policy': "require-trusted-types-for 'script'" }, body: NATIVE_HTML });
 
     const q = p.replace(/\.json$/, '');
     let m;

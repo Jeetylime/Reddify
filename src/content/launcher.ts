@@ -3,7 +3,9 @@ let el: HTMLElement | null = null;
 
 export function showLauncher(label: string, onClick: () => void) {
   if (el) { el.shadowRoot!.querySelector('button')!.setAttribute('aria-label', label); el.shadowRoot!.querySelector('button')!.title = label; return; }
-  el = document.createElement('reddify-launcher');
+  el = document.createElement('div');
+  el.id = 'reddify-launcher';
+  for (const [k, v] of [['display', 'block'], ['visibility', 'visible'], ['opacity', '1']]) el.style.setProperty(k, v, 'important');
   const shadow = el.attachShadow({ mode: 'open' });
   const sheet = new CSSStyleSheet();
   sheet.replaceSync(`
@@ -17,7 +19,14 @@ export function showLauncher(label: string, onClick: () => void) {
   const b = document.createElement('button');
   b.title = label;
   b.setAttribute('aria-label', label);
-  b.innerHTML = '<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#fff" d="M10.5 23V9h6.4c3 0 4.9 1.7 4.9 4.3 0 1.9-1.1 3.3-2.9 3.9L22.4 23h-3.6l-3.2-5.5h-1.8V23zm3.3-8.3h2.9c1.2 0 1.9-.6 1.9-1.5s-.7-1.5-1.9-1.5h-2.9z"/></svg>';
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 32 32');
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('fill', '#fff');
+  path.setAttribute('d', 'M10.5 23V9h6.4c3 0 4.9 1.7 4.9 4.3 0 1.9-1.1 3.3-2.9 3.9L22.4 23h-3.6l-3.2-5.5h-1.8V23zm3.3-8.3h2.9c1.2 0 1.9-.6 1.9-1.5s-.7-1.5-1.9-1.5h-2.9z');
+  svg.appendChild(path);
+  b.appendChild(svg);
   b.addEventListener('click', onClick);
   shadow.appendChild(b);
   document.documentElement.appendChild(el);

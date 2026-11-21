@@ -4,11 +4,13 @@ import type { ImageSrc, MediaEmbed, MediaGallery, MediaVideo, Post } from '../ap
 import { setState, useApp } from '../state/store';
 import type { LightboxItem } from '../state/store';
 import { clamp } from '../lib/format';
+import { parseHTML } from '../lib/trusted';
 
 const EMBED_HOSTS = /(^|\.)(youtube\.com|youtube-nocookie\.com|player\.vimeo\.com|streamable\.com|clips\.twitch\.tv|player\.twitch\.tv|redgifs\.com|open\.spotify\.com|w\.soundcloud\.com|giphy\.com|imgur\.com|gfycat\.com)$/i;
 
 export function embedSrc(m: MediaEmbed): string | null {
-  const src = new DOMParser().parseFromString(m.html, 'text/html').querySelector('iframe')?.getAttribute('src');
+  let src: string | null | undefined;
+  try { src = parseHTML(m.html).querySelector('iframe')?.getAttribute('src'); } catch { return null; }
   if (!src) return null;
   try {
     const u = new URL(src.startsWith('//') ? 'https:' + src : src);

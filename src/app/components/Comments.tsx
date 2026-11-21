@@ -4,13 +4,14 @@ import { FlairChip, Menu, MenuItem, Spinner } from '../lib/ui';
 import { SaveBtn, ShareBtn, Votes, absUrl, copy, useRegister } from './Actions';
 import { compact, fullDate, timeAgo } from '../lib/format';
 import { sanitize } from '../lib/sanitize';
+import { trustedHTML } from '../lib/trusted';
 import { reply } from '../api/reddit';
 import type { Comment, CommentNode, More } from '../api/types';
 import { toast, useApp, useEffective } from '../state/store';
 
 export function Html({ html, className = '' }: { html: string; className?: string }) {
   // Reddit's pre-rendered HTML, passed through a strict allow-list sanitizer (lib/sanitize.ts).
-  return <div className={`md ${className}`} dangerouslySetInnerHTML={{ __html: sanitize(html) }} />;
+  return <div className={`md ${className}`} dangerouslySetInnerHTML={{ __html: trustedHTML(sanitize(html)) }} />;
 }
 
 export interface ThreadCtx {

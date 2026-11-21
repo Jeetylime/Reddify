@@ -59,7 +59,7 @@ async function test(name, fn) {
 }
 const assert = (c, msg) => { if (!c) throw new Error(msg); };
 const shot = (n, p = page) => p.screenshot({ path: join(OUT, `${n}.png`) });
-const app = () => page.locator('reddify-app');
+const app = () => page.locator('#reddify-app');
 const posts = () => page.locator('[data-nav="post"]');
 const settle = (ms = 350) => page.waitForTimeout(ms);
 const storage = () => page.evaluate(() => 0); // placeholder for readability
@@ -114,7 +114,7 @@ await test('NSFW and spoiler media are blurred until revealed', async () => {
 await test('infinite scroll loads the next page', async () => {
   const before = await posts().count();
   await page.locator('.scroller').evaluate((el) => el.scrollTo(0, el.scrollHeight));
-  await page.waitForFunction((b) => document.querySelector('reddify-app').shadowRoot.querySelectorAll('[data-nav="post"]').length > b, before, { timeout: 8000 });
+  await page.waitForFunction((b) => document.querySelector('#reddify-app').shadowRoot.querySelectorAll('[data-nav="post"]').length > b, before, { timeout: 8000 });
   await page.locator('.scroller').evaluate((el) => el.scrollTo(0, 0));
 });
 
@@ -186,7 +186,7 @@ await test('comments: collapse/expand, load more, keyboard thread navigation', a
   assert(!(await first.evaluate((el) => el.classList.contains('collapsed'))), 'did not expand');
   const before = await page.locator('.cmt').count();
   await page.locator('.more-btn', { hasText: '3 more replies' }).click();
-  await page.waitForFunction((b) => document.querySelector('reddify-app').shadowRoot.querySelectorAll('.cmt').length >= b + 3, before, { timeout: 5000 });
+  await page.waitForFunction((b) => document.querySelector('#reddify-app').shadowRoot.querySelectorAll('.cmt').length >= b + 3, before, { timeout: 5000 });
   await page.keyboard.press('j');
   await page.keyboard.press('j');
   assert(await page.locator('.thread.focused').count() === 1, 'j did not focus a thread');
@@ -372,8 +372,8 @@ await test('unsupported pages stay native with a launcher button', async () => {
   await page.locator('#native-reddit').waitFor();
   assert(await page.locator('#native-reddit').isVisible(), 'native page hidden');
   assert(await app().count() === 0, 'app mounted on unsupported page');
-  assert(await page.locator('reddify-launcher').count() === 1, 'launcher missing');
-  await page.locator('reddify-launcher button').click();
+  assert(await page.locator('#reddify-launcher').count() === 1, 'launcher missing');
+  await page.locator('#reddify-launcher button').click();
   await page.waitForURL(`${R}/`);
   await posts().first().waitFor();
 });
@@ -383,7 +383,7 @@ await test('classic mode toggle and back', async () => {
   await Promise.all([page.waitForEvent('load'), page.locator('.pop-item', { hasText: 'Open in classic Reddit' }).click()]);
   await page.locator('#native-reddit').waitFor();
   assert(await page.locator('#native-reddit').isVisible(), 'classic page not visible');
-  await page.locator('reddify-launcher button').click();
+  await page.locator('#reddify-launcher button').click();
   await posts().first().waitFor();
 });
 
@@ -400,7 +400,7 @@ await test('settings page edits apply live to open Reddit tabs', async () => {
   await opts.locator('.row', { hasText: 'Muted keywords' }).locator('button', { hasText: 'Add' }).click();
   await opts.waitForTimeout(300);
   await page.bringToFront();
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('reddify-app').shadowRoot.querySelector('.root')).getPropertyValue('--accent').trim() === '#2fc58a', null, { timeout: 4000 });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#reddify-app').shadowRoot.querySelector('.root')).getPropertyValue('--accent').trim() === '#2fc58a', null, { timeout: 4000 });
   const s = await getSettings();
   assert(s.mutedKeywords.includes('Northern lights'), 'keyword filter not saved');
   const pop = await ctx.newPage();
@@ -426,10 +426,10 @@ await test('performance: initial render, DOM size, and no long tasks while scrol
   await page.goto(`${R}/r/pics`);
   await posts().first().waitFor();
   const firstPost = Date.now() - t0;
-  const nodes = await page.evaluate(() => document.querySelector('reddify-app').shadowRoot.querySelectorAll('*').length);
+  const nodes = await page.evaluate(() => document.querySelector('#reddify-app').shadowRoot.querySelectorAll('*').length);
   await page.bringToFront();
   const longTasks = await page.evaluate(async () => {
-    const sc = document.querySelector('reddify-app').shadowRoot.querySelector('.scroller');
+    const sc = document.querySelector('#reddify-app').shadowRoot.querySelector('.scroller');
     const tasks = [];
     const po = new PerformanceObserver((l) => l.getEntries().forEach((e) => tasks.push(e.duration)));
     po.observe({ type: 'longtask', buffered: false });

@@ -7,6 +7,7 @@ import { FeedView } from './views/FeedView';
 import { PostView } from './views/PostView';
 import { InboxView, SearchView, UserView } from './views/OtherViews';
 import { Empty } from './lib/ui';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { isInApp, isRedditHost, navigate } from './lib/router';
 import type { Route } from './lib/router';
 import { useRoute } from './lib/useRoute';
@@ -90,8 +91,8 @@ export function App() {
           <TopBar />
           <main className="scroller" ref={setScroller} tabIndex={-1}>
             <div className={`page ${gallery ? 'wide' : ''}`}>
-              <div className="col">{view}</div>
-              {showRail && <Rail route={route!} />}
+              <div className="col"><ErrorBoundary resetKey={route?.key}>{view}</ErrorBoundary></div>
+              {showRail && <ErrorBoundary resetKey={route?.key}><Rail route={route!} /></ErrorBoundary>}
             </div>
           </main>
           <BackToTop />

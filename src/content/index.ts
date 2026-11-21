@@ -2,7 +2,7 @@ import { loadSettings, onSettingsChanged, resolveTheme } from '../shared/setting
 import type { Settings } from '../shared/settings';
 import type { Msg, TabState } from '../shared/messages';
 import { knownHref, notifyExternalChange, onNavigate, parseRoute } from '../app/lib/router';
-import { isMounted, mountApp, unmountApp } from './mount';
+import { isMounted, isRendered, mountApp, unmountApp } from './mount';
 import { hideLauncher, showLauncher } from './launcher';
 
 /*
@@ -23,11 +23,16 @@ const applyTheme = () => { if (settings) html.classList.toggle('reddify-light', 
 
 function reconcile() {
   const enabled = settings?.enabled ?? true;
-  if (isHtml() && enabled && supported() && !isClassic()) {
+  if (isHtml() && enabled && supported() && !isClassic() && !failed) {
     html.classList.add('reddify-on');
     applyTheme();
     hideLauncher();
-    if (settings && !isMounted()) mountApp(); // wait for settings → no flash of the wrong theme
+    if (settings && !isMounted()) {
+      // wait for settings → no flash of the wrong theme
+      if (!mountApp()) { failSafe('mount failed'); return; }
+      // Safety net: never leave the user staring at a blank page.
+      window.setTimeout(() => { if (isMounted() && !isRendered()) failSafe('app did not render'); }, 6000);
+    }
     return;
   }
   html.classList.remove('reddify-on');
@@ -38,6 +43,14 @@ function reconcile() {
       if (supported()) reconcile(); else location.assign('/');
     });
   } else hideLauncher();
+}
+
+let failed = false;
+function failSafe(reason: string) {
+  console.error(`[Reddify] ${reason} — falling back to classic Reddit for this tab. Please report this.`);
+  failed = true;
+  unmountApp();
+  html.classList.remove('reddify-on');
 }
 
 function toggleClassic() {

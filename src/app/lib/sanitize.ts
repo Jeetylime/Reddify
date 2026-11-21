@@ -6,13 +6,16 @@ const ALLOWED = new Set(['p', 'br', 'hr', 'a', 'strong', 'b', 'em', 'i', 'del', 
   'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'div', 'img']);
 const DROP = new Set(['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'svg', 'math', 'link', 'meta', 'base', 'textarea', 'template', 'noscript']);
 
+import { parseHTML } from './trusted';
+
 const cache = new Map<string, string>();
 
 export function sanitize(html: string): string {
   if (!html) return '';
   const hit = cache.get(html);
   if (hit !== undefined) return hit;
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+  let doc: Document;
+  try { doc = parseHTML(html); } catch { return ''; }
   const walk = (node: Element) => {
     for (const el of Array.from(node.children)) {
       const tag = el.tagName.toLowerCase();
