@@ -152,7 +152,7 @@ function svgImage(url) {
   </svg>`;
 }
 
-const NATIVE_HTML = `<!doctype html><html><head><title>Reddit - The heart of the internet</title><style>/* like reddit.com: hide custom elements until defined */ :not(:defined) { visibility: hidden; }</style></head>
+const NATIVE_HTML = `<!doctype html><html><head><title>Reddit - The heart of the internet</title><style>/* like reddit.com: hide custom elements until defined */ :not(:defined):not(shreddit-app) { visibility: hidden; }</style></head>
 <body style="margin:0;font-family:sans-serif;background:#fff"><shreddit-app id="native-reddit"><h1 style="padding:20px">Native Reddit page</h1><p style="padding:0 20px">This stands in for Reddit's own UI.</p></shreddit-app></body></html>`;
 
 /** Installs the fake Reddit on a Playwright BrowserContext. `log` collects write actions (votes, saves…). */
