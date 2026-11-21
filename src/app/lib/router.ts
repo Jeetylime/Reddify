@@ -82,7 +82,13 @@ const listeners = new Set<Listener>();
 let lastNav: 'push' | 'pop' = 'push';
 export const navType = () => lastNav;
 
-window.addEventListener('popstate', () => { lastNav = 'pop'; listeners.forEach((l) => l()); });
+let known = location.href;
+/** The last URL Reddify itself rendered — lets the content script spot URL changes made by someone else. */
+export const knownHref = () => known;
+const emit = () => { known = location.href; listeners.forEach((l) => l()); };
+export const notifyExternalChange = () => { lastNav = 'push'; emit(); };
+
+window.addEventListener('popstate', () => { lastNav = 'pop'; emit(); });
 
 export function navigate(to: string, opts: { replace?: boolean } = {}) {
   const u = new URL(to, location.origin);
@@ -93,7 +99,7 @@ export function navigate(to: string, opts: { replace?: boolean } = {}) {
     if (opts.replace) history.replaceState(history.state, '', next);
     else history.pushState({ reddify: true }, '', next);
   }
-  listeners.forEach((l) => l());
+  emit();
 }
 
 export function onNavigate(cb: Listener): () => void {

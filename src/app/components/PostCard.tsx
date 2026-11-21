@@ -9,7 +9,7 @@ import { compact, fullDate, plainText, timeAgo } from '../lib/format';
 import type { Post } from '../api/types';
 import type { Layout } from '../../shared/settings';
 
-export function PostMeta({ post, showSub = true, full }: { post: Post; showSub?: boolean; full?: boolean }) {
+export function PostMeta({ post, showSub = true, full, comments }: { post: Post; showSub?: boolean; full?: boolean; comments?: boolean }) {
   return (
     <div className="p-meta">
       {showSub && <a className="p-sub" href={`/r/${post.sub}`}><Avatar name={post.sub} src={post.subIcon} size="xs" />r/{post.sub}</a>}
@@ -28,6 +28,7 @@ export function PostMeta({ post, showSub = true, full }: { post: Post; showSub?:
       )}
       {post.crosspostOf && <><span className="sep" /><span>crossposted from <a href={`/r/${post.crosspostOf.sub}`}>r/{post.crosspostOf.sub}</a></span></>}
       {full && post.awards > 0 && <span className="awards"><span className="sep" /> {post.awards} award{post.awards === 1 ? '' : 's'}</span>}
+      {comments && <><span className="sep" /><a className="cc" href={post.permalink}><Icon name="comment" size={12} />{compact(post.comments)}</a></>}
     </div>
   );
 }
@@ -76,15 +77,15 @@ export const PostCard = memo(function PostCard({ post, layout, focused, visited 
       <article {...common}>
         <Votes item={post} hideScore={hide.voteScore} />
         <div className="p-body">
-          <PostMeta post={post} />
+          <PostMeta post={post} comments />
           <h2 className="p-title"><a href={post.permalink}>{post.title}</a>{!hide.flairs && <FlairChip flair={post.flair} />}</h2>
         </div>
         <div className="quick" onClick={(ev) => ev.stopPropagation()}>
-          <a className="act" href={post.permalink}><Icon name="comment" size={15} />{compact(post.comments)}</a>
+          <ShareBtn path={post.permalink} />
           <SaveBtn item={post} />
           <PostMenu post={post} />
         </div>
-        <a className={`thumb ${post.nsfw || post.spoiler ? 'nsfw' : ''}`} href={post.permalink} aria-label="Open post"
+        <a className={`thumb ${post.nsfw || post.spoiler ? 'nsfw' : ''} ${th ? '' : 'empty'}`} href={post.permalink} aria-label="Open post"
           onClick={(ev) => { if (k === 'image' && th && !post.nsfw && !post.spoiler && post.media?.kind === 'image') { ev.preventDefault(); ev.stopPropagation(); openLightbox([{ url: post.media.src.url, w: post.media.src.w, h: post.media.src.h }], 0, post.title); } }}>
           {th ? <img src={th} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <Icon name={k === 'link' ? 'link' : post.isSelf ? 'comment' : 'image'} size={18} />}
           {k === 'video' && <span className="ti"><Icon name="play" size={10} fill /></span>}

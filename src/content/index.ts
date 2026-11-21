@@ -1,7 +1,7 @@
 import { loadSettings, onSettingsChanged, resolveTheme } from '../shared/settings';
 import type { Settings } from '../shared/settings';
 import type { Msg, TabState } from '../shared/messages';
-import { onNavigate, parseRoute } from '../app/lib/router';
+import { knownHref, notifyExternalChange, onNavigate, parseRoute } from '../app/lib/router';
 import { isMounted, mountApp, unmountApp } from './mount';
 import { hideLauncher, showLauncher } from './launcher';
 
@@ -62,8 +62,14 @@ function boot() {
   // Our own navigations, plus Reddit's client-side ones while we're inactive (e.g. classic → feed).
   onNavigate(reconcile);
   window.addEventListener('popstate', reconcile);
+  // Reddit's own (hidden) app can still rewrite the URL with history.replaceState; follow it if so.
   let last = location.href;
-  window.setInterval(() => { if (location.href !== last) { last = location.href; if (!isMounted()) reconcile(); } }, 700);
+  window.setInterval(() => {
+    if (location.href === last) return;
+    last = location.href;
+    if (!isMounted()) reconcile();
+    else if (location.href !== knownHref()) { notifyExternalChange(); reconcile(); }
+  }, 700);
 
   window.addEventListener('reddify:classic', toggleClassic);
   chrome.runtime.onMessage.addListener((msg: Msg, _sender, reply) => {

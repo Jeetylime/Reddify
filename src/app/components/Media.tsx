@@ -31,6 +31,13 @@ export function viewMedia(post: Post): boolean {
 
 const ratio = (s?: { w: number; h: number }) => (s && s.w > 0 && s.h > 0 ? { aspectRatio: `${s.w} / ${s.h}` } : undefined);
 
+/** Sizes a media box to its content so portrait media isn't letterboxed inside a full-width frame. */
+function fit(s: { w: number; h: number } | undefined, full?: boolean, small?: boolean): React.CSSProperties | undefined {
+  if (!s || !s.w || !s.h) return undefined;
+  const maxH = full ? '76vh' : small ? '240px' : '540px';
+  return { width: `min(100%, calc(${maxH} * ${(s.w / s.h).toFixed(4)}))` };
+}
+
 function Img({ src, alt = '', eager }: { src: ImageSrc; alt?: string; eager?: boolean }) {
   return <img src={src.url} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" style={ratio(src)} />;
 }
@@ -51,6 +58,7 @@ export function VideoPlayer({ m, autoplay, onExpand }: { m: MediaVideo; autoplay
   const [muted, setMuted] = useState(true);
   const [audioOk, setAudioOk] = useState(!!m.audioUrl);
   const [time, setTime] = useState({ cur: 0, dur: m.duration ?? 0 });
+  const [failed, setFailed] = useState(false);
 
   const toggle = (e?: React.SyntheticEvent) => {
     e?.stopPropagation();
@@ -91,13 +99,14 @@ export function VideoPlayer({ m, autoplay, onExpand }: { m: MediaVideo; autoplay
   const pct = time.dur ? (time.cur / time.dur) * 100 : 0;
   return (
     <div ref={box} className={`video ${playing ? '' : 'paused'}`} style={ratio({ w: m.w, h: m.h })} onClick={toggle}>
-      <video ref={v} src={m.url} poster={m.poster?.url} loop={m.gif} muted playsInline preload="metadata"
-        onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+      <video ref={v} src={m.url} poster={m.poster?.url} loop={m.gif} muted playsInline preload={autoplay || m.gif ? 'metadata' : 'none'}
+        onError={() => setFailed(true)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
         onTimeUpdate={(e) => setTime({ cur: e.currentTarget.currentTime, dur: e.currentTarget.duration || m.duration || 0 })} />
       {m.audioUrl && <audio ref={a} src={audioOk ? m.audioUrl : undefined} preload="none" muted onError={() => setAudioOk(false)} />}
-      {!playing && !m.gif && <span className="play-big" aria-hidden="true"><Icon name="play" size={22} fill /></span>}
+      {failed && <div className="veil" onClick={(e) => e.stopPropagation()}><span className="pill-btn"><Icon name="alert" size={15} />Video unavailable</span></div>}
+      {!playing && !m.gif && !failed && <span className="play-big" aria-hidden="true"><Icon name="play" size={22} fill /></span>}
       {m.gif && <span className="m-badge">GIF</span>}
-      {!m.gif && (
+      {!m.gif && !failed && (
         <div className="v-ctl" onClick={(e) => e.stopPropagation()}>
           <button onClick={toggle} aria-label={playing ? 'Pause' : 'Play'}><Icon name={playing ? 'pause' : 'play'} size={16} fill={!playing} /></button>
           <div className="v-bar" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); if (v.current && time.dur) v.current.currentTime = clamp((e.clientX - r.left) / r.width, 0, 1) * time.dur; }}>
@@ -184,7 +193,7 @@ export function PostMedia({ post, full }: { post: Post; full?: boolean }) {
   }
   if (m.kind === 'image') {
     return (
-      <div className={`media zoomable ${cls}`} onClick={(e) => { e.stopPropagation(); openLightbox([{ url: m.src.url, w: m.src.w, h: m.src.h }], 0, post.title); }}>
+      <div className={`media zoomable ${cls}`} style={fit(m.src, full, !!cls)} onClick={(e) => { e.stopPropagation(); openLightbox([{ url: m.src.url, w: m.src.w, h: m.src.h }], 0, post.title); }}>
         <Img src={full ? m.src : (m.preview ?? m.src)} alt={post.title} eager={full} />
         <span className="m-zoom"><Icon name="maximize" size={14} /></span>
       </div>
@@ -192,7 +201,7 @@ export function PostMedia({ post, full }: { post: Post; full?: boolean }) {
   }
   if (m.kind === 'gallery') return <Gallery post={post} m={m} full={full} cls={cls} />;
   if (m.kind === 'video') {
-    return <div className={`media ${cls}`}><VideoPlayer m={m} autoplay={settings.autoplayVideo} onExpand={() => viewMedia(post)} /></div>;
+    return <div className={`media ${cls}`} style={fit(m, full, !!cls)}><VideoPlayer m={m} autoplay={settings.autoplayVideo} onExpand={() => viewMedia(post)} /></div>;
   }
   const src = embedSrc(m);
   if (!src) {

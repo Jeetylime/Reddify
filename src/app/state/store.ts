@@ -94,7 +94,7 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 export function visitSub(name: string, icon?: string) {
   if (!name || /^(popular|all)$/i.test(name) || name.includes('+')) return;
   const prev = state.local.recentSubs.find((r) => same(r.name, name));
-  if (prev && prev === state.local.recentSubs[0] && (prev.icon || !icon)) return;
+  if (prev && prev === state.local.recentSubs[0] && prev.name === name && (prev.icon || !icon)) return;
   updateLocal((d) => ({ ...d, recentSubs: [{ name, icon: icon ?? prev?.icon, at: Date.now() }, ...d.recentSubs.filter((r) => !same(r.name, name))].slice(0, 30) }));
 }
 
