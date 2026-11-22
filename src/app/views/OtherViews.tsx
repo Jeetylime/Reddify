@@ -85,7 +85,7 @@ function EntityResults({ route }: { route: SearchRoute }) {
   usePaged(paged);
   useEffect(() => { setRefresh(() => setNonce((n) => n + 1)); return () => setRefresh(null); }, []);
   const sentinel = useSentinel(() => void paged.more(), paged.status === 'ready' && !paged.exhausted && !paged.loadingMore);
-  if (paged.status === 'error') return <div className="list"><ErrorState message={paged.error?.message ?? 'Search failed'} onRetry={() => void paged.load()} /></div>;
+  if (paged.status === 'error') return <div className="list"><ErrorState message={paged.error?.message ?? 'Search failed'} onRetry={() => void paged.load()} detail={paged.error?.detail} /></div>;
   if (paged.status !== 'ready') return <div className="list">{Array.from({ length: 6 }, (_, i) => <div key={i} className="ent"><div className="sk" style={{ width: 28, height: 28, borderRadius: 8 }} /><div className="grow"><div className="sk" style={{ width: '30%', height: 12, marginBottom: 7 }} /><div className="sk" style={{ width: '70%', height: 10 }} /></div></div>)}</div>;
   if (!paged.items.length) return <div className="list"><Empty icon="search" title={`No ${isSub ? 'communities' : 'people'} found`} text="Try another search term." /></div>;
   return (
@@ -129,8 +129,8 @@ export function InboxView({ route }: { route: InboxRoute }) {
         <div className="grow"><Tabs tabs={[['inbox', 'All'], ['unread', 'Unread'], ['sent', 'Sent']]} current={route.which} href={(k) => `/message/${k}`} /></div>
         {route.which !== 'sent' && !!me?.inbox && <button className="btn sm" style={{ marginBottom: 12 }} onClick={markAll}><Icon name="check" size={14} />Mark all read</button>}
       </div>
-      {paged.status === 'error' ? <div className="list"><ErrorState message={paged.error?.message ?? 'Couldn’t load your inbox'} onRetry={() => void paged.load()} /></div>
-        : paged.status !== 'ready' ? <div className="list">{Array.from({ length: 4 }, (_, i) => <div key={i} className="msg"><div className="sk" style={{ width: '25%', height: 10, marginBottom: 8 }} /><div className="sk" style={{ width: '50%', height: 13, marginBottom: 8 }} /><div className="sk" style={{ width: '85%', height: 10 }} /></div>)}</div>
+      {paged.status === 'error' ? <div className="list"><ErrorState message={paged.error?.message ?? 'Couldn’t load your inbox'} onRetry={() => void paged.load()} detail={paged.error?.detail} /></div>
+        : paged.status !== 'ready' ? <div className="list">{Array.from({ length: 4 }, (_, i) => <div key={i} className="msg sk-msg"><div className="sk" style={{ width: '25%', height: 10, marginBottom: 8 }} /><div className="sk" style={{ width: '50%', height: 13, marginBottom: 8 }} /><div className="sk" style={{ width: '85%', height: 10 }} /></div>)}</div>
         : !paged.items.length ? <div className="list"><Empty icon="mail" title={route.which === 'unread' ? 'You’re all caught up' : 'No messages'} text={route.which === 'unread' ? 'No unread messages or replies.' : 'Nothing here yet.'} /></div>
         : (
           <>

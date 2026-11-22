@@ -105,7 +105,7 @@ export function PostView({ route }: { route: PostRoute }) {
     };
   }, [data, collapsed, toggle, me, sort, cacheKey]);
 
-  if (error) return <div className="post-full"><ErrorState message={error.message} onRetry={() => setNonce((n) => n + 1)} /></div>;
+  if (error) return <div className="post-full"><ErrorState message={error.message} onRetry={() => setNonce((n) => n + 1)} detail={error.detail} /></div>;
   if (!data || !ctx) return <ThreadSkeleton />;
   const { post, tree } = data;
   const sortLabel = CSORTS.find(([k]) => k === sort)?.[1] ?? 'Best';

@@ -5,6 +5,7 @@ type J = any;
 
 export type ErrorKind = 'rate' | 'forbidden' | 'missing' | 'auth' | 'network' | 'server';
 export class ApiError extends Error {
+  detail?: string;
   constructor(public status: number, message: string, public kind: ErrorKind) { super(message); }
 }
 
@@ -16,7 +17,7 @@ const inflight = new Map<string, Promise<unknown>>();
  * GET a Reddit JSON endpoint on the *same origin* as the page. The browser attaches the user's
  * existing session cookies automatically; Reddify never reads, stores or modifies them.
  */
-interface Raw { status: number; text: string; via: string }
+interface Raw { status: number; text: string; via: string; attempts?: string[] }
 
 async function direct(url: string): Promise<Raw> {
   const res = await fetch(url, { credentials: 'include', headers: { Accept: 'application/json' } });
@@ -27,11 +28,16 @@ async function direct(url: string): Promise<Raw> {
  * Fallback: ask the extension's service worker to fetch. Reddit sometimes refuses listing requests
  * made by page scripts (403); the worker can retry without page context and via old.reddit.com.
  */
+let fallbackError = '';
 async function viaBackground(url: string): Promise<Raw | null> {
   try {
     const r = await chrome.runtime.sendMessage({ type: 'fetch-json', url });
     return r && typeof r.status === 'number' ? (r as Raw) : null;
-  } catch { return null; }
+  } catch (e) {
+    // Typically "Extension context invalidated" after the extension was updated — the tab needs a reload.
+    fallbackError = (e as Error)?.message ?? String(e);
+    return null;
+  }
 }
 
 const isJson = (r: Raw) => r.status >= 200 && r.status < 300 && /^\s*[[{]/.test(r.text);
@@ -46,18 +52,34 @@ export function getJson<T = J>(path: string, params: Record<string, string | num
   if (existing) return existing as Promise<T>;
   const p = (async () => {
     let res: Raw | null = null;
-    try { res = await direct(key); } catch { /* network/CORS: try the fallback */ }
+    const log: string[] = [];
+    try { res = await direct(key); log.push(`page: ${res.status} ${res.text.slice(0, 1) === '<' ? 'html' : ''}`); }
+    catch (e) { log.push(`page: ${(e as Error).message}`); }
     const reason = res ? reasonOf(res) : '';
     const legit = reason === 'private' || reason === 'quarantined' || reason === 'banned' || res?.status === 404;
     if (!res || (!isJson(res) && !legit)) {
       const fb = await viaBackground(key);
+      if (fb) log.push(...(fb.attempts ?? [`${fb.via}: ${fb.status}`]));
+      else log.push(`fallback unavailable: ${fallbackError || 'no response'}`);
       if (fb && (isJson(fb) || !res)) res = fb;
-      if (fb && !isJson(fb)) console.warn(`[Reddify] GET ${key} failed: page ${res?.status ?? 'error'}, fallback ${fb.status} (${fb.via})`, fb.text.slice(0, 200));
     }
-    if (!res) throw new ApiError(0, 'Couldn’t reach Reddit. Check your connection and try again.', 'network');
+    const fail = (e: ApiError) => {
+      e.detail = `GET ${u.pathname}${u.search}\n${log.join('\n')}${res && !isJson(res) ? `\nresponse: ${res.text.replace(/\s+/g, ' ').slice(0, 300)}` : ''}`;
+      console.warn('[Reddify]', e.message, '\n' + e.detail);
+      return e;
+    };
+    if (!res) throw fail(new ApiError(0, /invalidated/i.test(fallbackError) ? 'Reddify was updated — reload this tab.' : 'Couldn’t reach Reddit. Check your connection and try again.', 'network'));
     if (isJson(res)) {
       try { return JSON.parse(res.text) as T; } catch { /* fall through */ }
     }
+    try { return finish<T>(res); } catch (e) { throw fail(e as ApiError); }
+  })().finally(() => inflight.delete(key));
+  inflight.set(key, p);
+  return p;
+}
+
+function finish<T>(res: Raw): T {
+  {
     const r = reasonOf(res);
     const s = res.status;
     if (s === 429) throw new ApiError(429, 'Reddit is rate-limiting requests. Wait a few seconds and retry.', 'rate');
@@ -65,9 +87,7 @@ export function getJson<T = J>(path: string, params: Record<string, string | num
     if (s === 403) throw new ApiError(403, r === 'private' ? 'This community is private.' : r === 'quarantined' ? 'This community is quarantined. Open it in classic Reddit to opt in.' : `Reddit refused this request (403${r ? `: ${r}` : ''}). Try reloading the page; if it keeps happening, use classic Reddit (Alt+Shift+R).`, 'forbidden');
     if (s === 404) throw new ApiError(404, r === 'banned' ? 'This community has been banned.' : 'Nothing was found here.', 'missing');
     throw new ApiError(s, `Reddit returned an unexpected response (${s}).`, 'server');
-  })().finally(() => inflight.delete(key));
-  inflight.set(key, p);
-  return p;
+  }
 }
 
 /* ------------------------- normalisation ------------------------- */

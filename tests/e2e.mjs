@@ -250,6 +250,7 @@ await test('quick switcher (Ctrl+K) jumps to a community', async () => {
 
 await test('community page: header, rules rail, pin to sidebar, recent', async () => {
   await page.locator('.rule').first().waitFor();
+  await page.locator('.post .tag.pin').first().waitFor();
   assert(await page.locator('.rule').count() === 3, 'rules not shown');
   assert(await page.locator('.post .tag.pin').count() === 1, 'pinned mod post missing');
   await page.locator('.head-actions button[title="Pin to sidebar"]').click();
@@ -291,8 +292,10 @@ await test('profile and saved views (with community filter chips)', async () => 
   await page.locator('.sidebar a[title="Saved"]').click();
   await page.waitForURL(/\/user\/reddify_tester\/saved/);
   await page.locator('.chips .chip').first().waitFor();
+  await posts().first().waitFor();
   const all = await posts().count();
   await page.locator('.chips .chip', { hasText: /^r\/Design/ }).click();
+  await settle(150);
   const filtered = await posts().count();
   assert(filtered > 0 && filtered < all, `saved filter did not narrow (${all} → ${filtered})`);
   await page.locator('.tabs a', { hasText: 'Comments' }).click();
@@ -302,7 +305,7 @@ await test('profile and saved views (with community filter chips)', async () => 
 
 await test('inbox renders and mark-all-read works', async () => {
   await page.locator('.topbar a[aria-label="Inbox"]').click();
-  await page.locator('.msg').first().waitFor();
+  await page.locator('.msg.unread').first().waitFor();
   assert(await page.locator('.msg.unread').count() === 2, 'unread markers missing');
   writes.length = 0;
   await page.locator('button', { hasText: 'Mark all read' }).click();
@@ -464,6 +467,20 @@ await test('follows URL changes made outside Reddify (e.g. by Reddit’s hidden 
 await test('falls back when Reddit blocks a page-script request (403)', async () => {
   await page.goto(`${R}/r/blockedsub`);
   await posts().first().waitFor({ timeout: 10000 });
+});
+
+await test('falls back to the ?sort= URL shape when /r/x/hot.json is refused', async () => {
+  await page.goto(`${R}/r/sortblocked`);
+  await posts().first().waitFor({ timeout: 10000 });
+});
+
+await test('a fully refused feed shows an error with request details', async () => {
+  await page.goto(`${R}/r/deadsub`);
+  await page.locator('.state.err', { hasText: '403' }).waitFor({ timeout: 10000 });
+  await page.locator('.state.err button', { hasText: 'Show details' }).click();
+  const d = await page.locator('.state.err pre').innerText();
+  assert(/page: 403/.test(d) && /old\.reddit/.test(d) && /whoa there/.test(d), `details incomplete:\n${d}`);
+  await shot('20-error-details');
 });
 
 await test('no unexpected console errors', async () => {

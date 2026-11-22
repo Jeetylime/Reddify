@@ -88,7 +88,7 @@ export function FeedList({ paged, applyMutes, emptyText, filter }: { paged: Page
     if (paged.status === 'ready' && items.length < 6 && !paged.exhausted && !paged.loadingMore && !paged.moreError) void paged.more();
   }, [paged, paged.status, items.length, paged.exhausted, paged.loadingMore, paged.moreError]);
 
-  if (paged.status === 'error') return <div className="list"><ErrorState message={paged.error?.message ?? 'Something went wrong.'} onRetry={() => void paged.load()} /></div>;
+  if (paged.status === 'error') return <div className="list"><ErrorState message={paged.error?.message ?? 'Something went wrong.'} onRetry={() => void paged.load()} detail={paged.error?.detail} /></div>;
   if (paged.status !== 'ready') return <PostSkeletons layout={settings.layout} />;
 
   const layout = settings.layout;

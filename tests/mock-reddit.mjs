@@ -182,6 +182,8 @@ export async function installMock(context, log = []) {
 
     const q = p.replace(/\.json$/, '');
     // Simulate Reddit's script blocking: page requests to r/blockedsub get a 403 HTML page.
+    if (/^\/r\/sortblocked\/(hot|new|top|rising)$/i.test(q)) return route.fulfill({ status: 403, contentType: 'text/html', body: '<h1>blocked</h1>' });
+    if (/^\/r\/deadsub\b/i.test(q)) return route.fulfill({ status: 403, contentType: 'text/html', body: '<h1>whoa there, pardner!</h1>' });
     if (/^\/r\/blockedsub\b/i.test(q) && u.searchParams.has('sr_detail')) return route.fulfill({ status: 403, contentType: 'text/html', body: '<h1>whoa there, pardner!</h1>' });
     let m;
     if (q === '/api/me') return json({ kind: 't2', data: { name: ME, modhash: 'test-modhash', inbox_count: state.inbox, icon_img: 'https://styles.redditmedia.com/icon_me.png?w=64&h=64', link_karma: 12840, comment_karma: 40211 } });

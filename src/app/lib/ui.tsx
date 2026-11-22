@@ -69,13 +69,20 @@ export function Empty({ icon = 'info', title, text, action }: { icon?: IconName;
   );
 }
 
-export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorState({ message, onRetry, detail }: { message: string; onRetry?: () => void; detail?: string }) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="state err" role="alert">
       <div className="state-ic"><Icon name="alert" size={22} /></div>
       <h3>Couldn’t load this</h3>
       <p>{message}</p>
-      {onRetry && <button className="btn" onClick={onRetry}><Icon name="refresh" size={15} />Try again</button>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        {onRetry && <button className="btn" onClick={onRetry}><Icon name="refresh" size={15} />Try again</button>}
+        {detail && <button className="btn ghost" onClick={() => setOpen((v) => !v)}>{open ? 'Hide details' : 'Show details'}</button>}
+      </div>
+      {open && detail && (
+        <pre style={{ marginTop: 14, maxWidth: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-all', textAlign: 'left', fontSize: 11.5, lineHeight: 1.5, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-2)', userSelect: 'text' }}>{detail}</pre>
+      )}
     </div>
   );
 }

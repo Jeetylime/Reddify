@@ -40,19 +40,29 @@ chrome.alarms.onAlarm.addListener((a) => { if (a.name === ALARM) void updateBadg
 /** Fetch fallback for the content script; only ever reddit.com GETs. Tries a few equivalent URLs. */
 async function fetchJson(url: string) {
   const u = new URL(url);
-  if (!/^(www\.|old\.)?reddit\.com$/.test(u.hostname)) return { status: 400, text: '', via: 'rejected' };
+  if (!/^(www\.|old\.)?reddit\.com$/.test(u.hostname)) return { status: 400, text: '', via: 'rejected', attempts: [] as string[] };
+  const variants: [URL, string][] = [];
+  const add = (x: URL, via: string) => { if (!variants.some(([v]) => v.toString() === x.toString())) variants.push([x, via]); };
   const bare = new URL(u); bare.searchParams.delete('sr_detail');
-  const old = new URL(bare); old.hostname = 'old.reddit.com';
+  add(u, 'worker'); add(bare, 'worker-bare');
+  // "/r/popular/hot.json" ⇄ "/r/popular.json?sort=hot" — Reddit accepts both shapes on most listings.
+  const m = /^(.*?)\/(best|hot|new|top|rising|controversial)\.json$/.exec(bare.pathname);
+  if (m && m[1]) { const alt = new URL(bare); alt.pathname = `${m[1]}.json`; alt.searchParams.set('sort', m[2]); add(alt, 'worker-sort-param'); }
+  for (const [v, via] of [...variants]) { if (via === 'worker') continue; const o = new URL(v); o.hostname = 'old.reddit.com'; add(o, `old.reddit (${via.replace('worker-', '')})`); }
+  const attempts: string[] = [];
   let last = { status: 0, text: '', via: 'worker' };
-  for (const [cand, via] of [[u, 'worker'], [bare, 'worker-bare'], [old, 'old.reddit']] as [URL, string][]) {
+  for (const [cand, via] of variants) {
     try {
       const res = await fetch(cand.toString(), { credentials: 'include', headers: { Accept: 'application/json' } });
       last = { status: res.status, text: await res.text(), via };
-      if (res.ok && /^\s*[[{]/.test(last.text)) return last;
-      if (res.status === 404) return last;
-    } catch { /* try next */ }
+      attempts.push(`${via}: ${res.status} ${res.headers.get('content-type') ?? ''} ${cand.pathname}${cand.search}`);
+      if (res.ok && /^\s*[[{]/.test(last.text)) return { ...last, attempts };
+      if (res.status === 404) break;
+    } catch (e) {
+      attempts.push(`${via}: ${(e as Error).message}`);
+    }
   }
-  return last;
+  return { ...last, attempts };
 }
 
 chrome.runtime.onMessage.addListener((msg: Msg, sender, reply) => {
