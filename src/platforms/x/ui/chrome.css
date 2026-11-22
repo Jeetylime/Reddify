@@ -1,0 +1,74 @@
+/* Orbit chrome on X (inside Orbit's Shadow DOM). X's page stays underneath; this layer only draws the
+   sidebar, top bar and overlays, and lets every other click fall through to X. */
+
+.x-root { position: fixed; inset: 0; pointer-events: none; font-size: 13.5px; line-height: 1.4; color: var(--text); }
+.x-root > * { pointer-events: auto; }
+.x-root > .toasts { pointer-events: none; }
+.x-root.x-behind > .x-sidebar, .x-root.x-behind > .x-topbar { pointer-events: none; filter: saturate(.6) brightness(.82); transition: filter var(--t) var(--ease); }
+
+/* ---------- sidebar ---------- */
+.x-sidebar { position: absolute; left: 0; top: 0; bottom: 0; width: var(--sidebar-w); transition: width var(--t) var(--ease); }
+.x-sidebar .pop-wrap { display: flex; }
+.x-sidebar .pop { min-width: 236px; }
+.sb-item.sb-more { color: var(--text-2); }
+.x-sidebar .sb-item { height: 38px; font-size: 14px; font-weight: 560; gap: 12px; }
+.x-sidebar .sb-section + .sb-section { margin-top: 14px; }
+.x-post-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 40px; margin-top: 18px; border-radius: 12px;
+  background: var(--accent); color: var(--accent-fg); font-weight: 680; font-size: 14px; letter-spacing: -0.01em;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, .18);
+  transition: filter var(--t-fast), transform var(--t-fast) var(--ease); }
+.x-post-btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.x-post-btn:active { transform: translateY(0) scale(.99); }
+.x-account { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; padding: 4px 8px 4px 4px; border-radius: 10px; text-align: left; }
+.x-account:hover { background: var(--hover); }
+.x-acc-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.x-acc-text b { font-size: 13px; font-weight: 640; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 128px; }
+.x-acc-text small { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 128px; }
+.x-sidebar .avatar.md { display: grid; place-items: center; background: var(--surface-3); font-weight: 700; color: var(--text-2); }
+.root.sb-compact .x-acc-text { display: none; }
+.root.sb-compact .x-post-btn { width: 40px; margin-left: auto; margin-right: auto; }
+.root.sb-compact .x-post-btn .sb-text { display: none; }
+.root.sb-compact .x-account { padding: 4px; }
+.x-sidebar .sb-foot { gap: 4px; }
+
+/* ---------- top bar ---------- */
+.x-topbar { position: absolute; top: 0; right: 0; left: var(--sidebar-w); height: 56px; transition: left var(--t) var(--ease); }
+.x-topbar .tb-title { flex: 0 1 220px; }
+.x-tabs { flex: none; }
+.x-tabs button { height: 28px; padding: 0 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.x-tabs button.on { color: var(--text); }
+.x-filter { flex: 1 1 360px; max-width: 540px; margin: 0 auto; height: 36px; }
+.x-compose { margin-left: 6px; }
+.x-view { width: 300px; padding: 2px 2px 4px; }
+.x-view-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 8px; font-size: 13px; color: var(--text-2); font-weight: 540; }
+.x-view-row .seg button { height: 24px; font-size: 12px; padding: 0 8px; }
+
+/* ---------- narrow screens: X's own bottom tab bar takes over navigation ---------- */
+.x-root.x-narrow > .x-sidebar { display: none; }
+.x-root.x-narrow > .x-topbar { left: 0; padding-left: 10px; gap: 8px; }
+.x-root.x-narrow .tb-title { display: none; }
+
+/* ---------- thread reader ---------- */
+.x-reader { position: absolute; z-index: 61; left: 50%; top: 4vh; bottom: 4vh; transform: translateX(-50%); width: min(720px, calc(100vw - 24px));
+  display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border-2); border-radius: 18px; box-shadow: var(--shadow-pop);
+  animation: help-in 200ms var(--ease); overflow: hidden; outline: none; }
+.xr-head { display: flex; align-items: center; gap: 14px; padding: 18px 18px 16px 24px; border-bottom: 1px solid var(--border); flex: none; }
+.xr-head .avatar.lg { width: 48px; height: 48px; display: grid; place-items: center; background: var(--surface-3); font-size: 20px; }
+.xr-head b { display: block; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.xr-head .mute { font-size: 12.5px; }
+.xr-body { flex: 1; overflow-y: auto; padding: 10px 40px 40px; }
+.xr-post { padding: 18px 0 16px; border-bottom: 1px solid var(--border); }
+.xr-post:last-child { border-bottom: 0; }
+.xr-post p { margin: 0; font-family: var(--font-read, var(--font)); font-size: calc(var(--fs) * 1.2); line-height: calc(var(--lh) + .12); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.xr-post p a { color: var(--accent); }
+.xr-post p a:hover { text-decoration: underline; }
+.xr-media { display: grid; gap: 6px; margin-top: 14px; }
+.xr-media.n2, .xr-media.n4 { grid-template-columns: 1fr 1fr; }
+.xr-media.n3 { grid-template-columns: 1fr 1fr 1fr; }
+.xr-media button { display: block; border-radius: 12px; overflow: hidden; background: var(--media-bg); border: 1px solid var(--border); }
+.xr-media img { display: block; width: 100%; max-height: 520px; object-fit: cover; }
+.xr-meta { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--text-3); }
+.xr-meta a { margin-left: auto; color: var(--text-3); font-weight: 600; }
+.xr-meta a:hover { color: var(--accent); }
+
+.x-lightbox { position: fixed; }

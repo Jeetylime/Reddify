@@ -1,4 +1,4 @@
-// Packages dist/ into release/reddify-<version>.zip (Chrome Web Store / manual distribution).
+// Packages dist/ into release/orbit-<version>.zip (Chrome Web Store / manual distribution).
 // Dependency-free: a minimal ZIP writer using Node's built-in zlib.
 import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
@@ -35,6 +35,6 @@ const end = Buffer.alloc(22);
 end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(centrals.length / 2, 8); end.writeUInt16LE(centrals.length / 2, 10);
 end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(offset, 16);
 mkdirSync(join(root, 'release'), { recursive: true });
-const out = join(root, 'release', `reddify-${version}.zip`);
+const out = join(root, 'release', `orbit-${version}.zip`);
 writeFileSync(out, Buffer.concat([...locals, cd, end]));
 console.log(`Packaged → ${relative(root, out)} (${(statSync(out).size / 1024).toFixed(0)} KB)`);

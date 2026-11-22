@@ -1,7 +1,7 @@
-import { loadSettings, saveSettings } from '../shared/settings';
-import type { Msg } from '../shared/messages';
+import { loadSettings, platformEnabled, saveSettings } from '@core/settings';
+import type { Msg } from '@core/messages';
 
-const ALARM = 'reddify-unread';
+const ALARM = 'orbit-unread';
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   await saveSettings(await loadSettings()); // fills in defaults for any newly added settings
@@ -11,10 +11,10 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
 chrome.runtime.onStartup.addListener(() => void schedule());
 chrome.storage.onChanged.addListener((c) => { if (c.settings || c.settingsFallback) void schedule(); });
 
-/** Optional toolbar badge with your unread inbox count (uses your existing reddit.com session). */
+/** Optional toolbar badge with your unread Reddit inbox count (uses your existing reddit.com session). */
 async function schedule() {
   const s = await loadSettings();
-  if (s.enabled && s.badge) {
+  if (platformEnabled(s, 'reddit') && s.badge) {
     await chrome.alarms.create(ALARM, { periodInMinutes: 3, delayInMinutes: 0.1 });
   } else {
     await chrome.alarms.clear(ALARM);
@@ -71,13 +71,17 @@ chrome.runtime.onMessage.addListener((msg: Msg, sender, reply) => {
     void fetchJson(msg.url).then(reply);
     return true;
   }
-  if (msg.type === 'open-options') { void chrome.runtime.openOptionsPage(); reply(true); }
+  if (msg.type === 'open-options') {
+    if (msg.section) void chrome.tabs.create({ url: chrome.runtime.getURL(`options.html#${encodeURIComponent(msg.section)}`) });
+    else void chrome.runtime.openOptionsPage();
+    reply(true);
+  }
   else if (msg.type === 'refresh-badge') { void updateBadge().then(() => reply(true)); return true; }
   return false;
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== 'toggle-reddify') return;
+  if (command !== 'toggle-orbit') return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id != null) chrome.tabs.sendMessage(tab.id, { type: 'toggle-classic' } satisfies Msg).catch(() => { /* not a Reddit tab */ });
+  if (tab?.id != null) chrome.tabs.sendMessage(tab.id, { type: 'toggle-classic' } satisfies Msg).catch(() => { /* not a Reddit or X tab */ });
 });

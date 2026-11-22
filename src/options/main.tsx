@@ -2,16 +2,18 @@ import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import './options.css';
-import { ACCENT_PRESETS, DEFAULT_LOCAL, DEFAULT_SETTINGS, SECTION_LABELS, loadSettings, mergeSettings, onSettingsChanged, resolveTheme, saveLocal, saveSettings, themeVars } from '../shared/settings';
-import type { Density, HideOptions, Layout, SectionId, Settings, Theme } from '../shared/settings';
-import { SHORTCUTS } from '../shared/shortcuts';
-import { Icon, Logo } from '../app/components/Icon';
-import type { IconName } from '../app/components/Icon';
+import { ACCENT_PRESETS, DEFAULT_LOCAL, DEFAULT_SETTINGS, SECTION_LABELS, loadSettings, mergeSettings, onSettingsChanged, reducedMotion, resolveTheme, saveLocal, saveSettings, themeVars } from '@core/settings';
+import type { Density, FontChoice, HideOptions, Layout, Motion, SectionId, Settings, Theme, XDefaultFeed, XMediaSize, XPostStyle, XSettings } from '@core/settings';
+import { SHORTCUTS, X_SHORTCUTS } from '@core/shortcuts';
+import { Icon, Logo, PlatformIcon } from '@core/Icon';
+import type { IconName } from '@core/Icon';
 
-const SECTIONS: [string, string, IconName][] = [
-  ['appearance', 'Appearance', 'sun'], ['layout', 'Layout & reading', 'comfortable'], ['content', 'Feed & content', 'filter'],
-  ['navigation', 'Sidebar', 'sidebar'], ['filters', 'Filters', 'eye-off'], ['interface', 'Interface elements', 'layers'],
-  ['keyboard', 'Keyboard', 'keyboard'], ['data', 'Data & privacy', 'lock'], ['about', 'About', 'info'],
+type NavEntry = [string, string, IconName | 'reddit' | 'x'];
+const SECTIONS: [string, NavEntry[]][] = [
+  ['Orbit', [['general', 'General', 'layers'], ['appearance', 'Appearance', 'sun'], ['layout', 'Layout', 'sidebar'], ['behavior', 'Behavior', 'zap'], ['keyboard', 'Keyboard', 'keyboard']]],
+  ['Reddit', [['reddit', 'Feed & reading', 'reddit'], ['content', 'Content', 'filter'], ['navigation', 'Sidebar', 'sidebar'], ['filters', 'Filters', 'eye-off'], ['interface', 'Interface elements', 'eye']]],
+  ['X', [['x', 'Timeline', 'x'], ['x-hide', 'Hide elements', 'eye-off']]],
+  ['More', [['data', 'Data & privacy', 'lock'], ['about', 'About', 'info']]],
 ];
 
 function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -60,6 +62,8 @@ function Options() {
     return () => io.disconnect();
   }, [s === null]);
   useEffect(() => { if (s) document.body.classList.toggle('light', resolveTheme(s.theme) === 'light'); }, [s?.theme]);
+  // Deep links (options.html#x) arrive before the page has rendered; scroll once it has.
+  useEffect(() => { if (s && location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView(); }, [s === null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!s) return null;
   const set = (patch: Partial<Settings>) => {
@@ -68,69 +72,127 @@ function Options() {
     void saveSettings(next).then(() => setSavedTick((t) => t + 1));
   };
   const setHide = (k: keyof HideOptions, v: boolean) => set({ hide: { ...s.hide, [k]: v } });
+  const setX = (patch: Partial<XSettings>) => set({ x: { ...s.x, ...patch } });
   const moveSection = (id: SectionId, d: -1 | 1) => { const o = [...s.navOrder]; const i = o.indexOf(id); const j = i + d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; set({ navOrder: o }); };
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'reddify-settings.json'; a.click();
+    a.href = URL.createObjectURL(blob); a.download = 'orbit-settings.json'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   const importJson = async (f: File) => {
     try { set(mergeSettings(JSON.parse(await f.text()))); alert('Settings imported.'); }
-    catch { alert('That file isn’t a valid Reddify settings export.'); }
+    catch { alert('That file isn’t a valid Orbit settings export.'); }
   };
 
   const theme = resolveTheme(s.theme);
   return (
-    <div className="root" data-theme={theme} style={themeVars(s) as React.CSSProperties}>
+    <div className={`root ${reducedMotion(s) ? 'no-motion' : ''}`} data-theme={theme} style={themeVars(s) as React.CSSProperties}>
       <div className="layout">
         <nav className="nav" aria-label="Settings sections">
-          <div className="brand"><Logo size={34} /><div><b>Reddify</b><span>Settings</span></div></div>
-          {SECTIONS.map(([id, label, icon]) => <a key={id} href={`#${id}`} className={active === id ? 'on' : ''}><Icon name={icon} size={16} />{label}</a>)}
+          <div className="brand"><Logo size={34} /><div><b>Orbit</b><span>Settings · Reddit & X</span></div></div>
+          {SECTIONS.map(([group, items]) => (
+            <div className="nav-group" key={group}>
+              <div className="nav-h">{group}</div>
+              {items.map(([id, label, icon]) => (
+                <a key={id} href={`#${id}`} className={active === id ? 'on' : ''}>
+                  {icon === 'reddit' || icon === 'x' ? <PlatformIcon id={icon} size={16} /> : <Icon name={icon} size={16} />}{label}
+                </a>
+              ))}
+            </div>
+          ))}
         </nav>
         <main className="content">
           <header>
             <h1>Settings</h1>
             <span className={`saved-pill ${savedTick ? 'show' : ''}`} key={savedTick}><Icon name="check" size={14} />Saved · applies instantly to open tabs</span>
           </header>
-          <div className="panel"><Row title="Enable Reddify" desc="Turn off to use the original Reddit interface everywhere. You can also switch per tab with Alt+Shift+R."><Switch label="Enable Reddify" on={s.enabled} onChange={(v) => set({ enabled: v })} /></Row></div>
+          <Group id="general" title="General" desc="Orbit is one client for both platforms. Turn it off everywhere, or per platform.">
+            <Row title="Enable Orbit" desc="Turn off to use the original sites everywhere. Switch a single tab with Alt+Shift+O."><Switch label="Enable Orbit" on={s.enabled} onChange={(v) => set({ enabled: v })} /></Row>
+            {(['reddit', 'x'] as const).map((p) => (
+              <Row key={p} title={p === 'reddit' ? 'Orbit on Reddit' : 'Orbit on X / Twitter'} desc={p === 'reddit' ? 'reddit.com and www.reddit.com' : 'x.com and twitter.com'}>
+                <span className="plat"><PlatformIcon id={p} size={22} /></span>
+                <Switch label={`Orbit on ${p === 'reddit' ? 'Reddit' : 'X'}`} on={s.platforms[p]} onChange={(v) => set({ platforms: { ...s.platforms, [p]: v } })} />
+              </Row>
+            ))}
+          </Group>
 
-          <Group id="appearance" title="Appearance">
+          <Group id="appearance" title="Appearance" desc="Shared by Reddit and X — change it once, both follow.">
             <Row title="Theme"><Seg<Theme> value={s.theme} options={[['dark', 'Dark'], ['light', 'Light'], ['system', 'System']]} onChange={(v) => set({ theme: v })} /></Row>
-            <Row title="Accent color" desc="Used sparingly for selection, links and focus.">
+            <Row title="Accent color" desc="Used sparingly for selection, links, focus and primary actions.">
               <div className="swatches">
                 {ACCENT_PRESETS.map((p) => <button key={p.value} className={`sw ${s.accent.toLowerCase() === p.value ? 'on' : ''}`} style={{ background: p.value }} title={p.name} aria-label={p.name} onClick={() => set({ accent: p.value })} />)}
                 <label className="sw-custom" title="Custom color" style={ACCENT_PRESETS.some((p) => p.value === s.accent.toLowerCase()) ? undefined : { background: s.accent, borderStyle: 'solid' }}><input type="color" value={s.accent} onChange={(e) => set({ accent: e.target.value })} aria-label="Custom accent color" /></label>
               </div>
             </Row>
+            <Row title="Typeface" desc="Rounded changes the whole interface; Serif is a reading face for post text only."><Seg<FontChoice> value={s.font} options={[['system', 'System'], ['rounded', 'Rounded'], ['serif', 'Serif reading']]} onChange={(v) => set({ font: v })} /></Row>
+            <Row title="Text size" desc="Posts, comments and timelines."><Range value={s.fontSize} min={12} max={19} step={0.5} unit="px" onChange={(v) => set({ fontSize: v })} /></Row>
+            <Row title="Line spacing"><Range value={s.lineHeight} min={1.3} max={1.9} step={0.05} onChange={(v) => set({ lineHeight: Math.round(v * 100) / 100 })} /></Row>
+            <Row title="Animations" desc="System follows your operating system’s reduced-motion setting."><Seg<Motion> value={s.motion} options={[['system', 'System'], ['full', 'Full'], ['reduced', 'Reduced']]} onChange={(v) => set({ motion: v })} /></Row>
             <Row title="Preview" col>
-              <div className="preview">
-                <div className="v"><span className="up">▲</span>2.4k<span>▼</span></div>
-                <div>
-                  <div className="meta"><b>r/design</b> · u/someone · 3h</div>
-                  <h3>The details are not the details. They make the design.</h3>
-                  <p>Reddify uses your font size, line height and density settings for posts and comments — adjust them below and watch this preview update.</p>
-                  <div className="acts"><span>148 comments</span><span>Share</span><span>Save</span></div>
+              <div className="previews">
+                <div className="preview">
+                  <div className="v"><span className="up">▲</span>2.4k<span>▼</span></div>
+                  <div>
+                    <div className="meta"><PlatformIcon id="reddit" size={14} /> <b>r/design</b> · u/someone · 3h</div>
+                    <h3>The details are not the details. They make the design.</h3>
+                    <p>Orbit uses your font size, line height and density settings for posts and comments on every platform.</p>
+                    <div className="acts"><span>148 comments</span><span>Share</span><span>Save</span></div>
+                  </div>
+                </div>
+                <div className="preview xp">
+                  <span className="xp-av">O</span>
+                  <div>
+                    <div className="meta"><b>Orbit</b> @orbit · 2m <span className="xp-plat"><PlatformIcon id="x" size={14} /></span></div>
+                    <p className="xp-text">One design language, two platforms. Same type, same spacing, same accent — wherever you scroll.</p>
+                    <div className="acts xp-acts"><span>↩ 24</span><span>⟲ 112</span><span className="like">♥ 1.8K</span><span>⌑</span></div>
+                  </div>
                 </div>
               </div>
             </Row>
           </Group>
 
-          <Group id="layout" title="Layout & reading">
-            <Row title="Default feed layout" desc="Switch any time from the top bar or with keys 1–4."><Seg<Layout> value={s.layout} options={[['comfortable', 'Comfortable'], ['compact', 'Compact'], ['gallery', 'Gallery'], ['minimal', 'Minimal']]} onChange={(v) => set({ layout: v })} /></Row>
-            <Row title="Density" desc="Vertical spacing between posts."><Seg<Density> value={s.density} options={[['cozy', 'Cozy'], ['regular', 'Regular'], ['tight', 'Tight']]} onChange={(v) => set({ density: v })} /></Row>
-            <Row title="Content width" desc="Maximum width of the feed and comments column."><Range value={s.contentWidth} min={600} max={1100} step={20} unit="px" onChange={(v) => set({ contentWidth: v })} /></Row>
-            <Row title="Text size" desc="Post bodies and comments."><Range value={s.fontSize} min={12} max={19} step={0.5} unit="px" onChange={(v) => set({ fontSize: v })} /></Row>
-            <Row title="Line spacing"><Range value={s.lineHeight} min={1.3} max={1.9} step={0.05} onChange={(v) => set({ lineHeight: Math.round(v * 100) / 100 })} /></Row>
-            <Row title="Sidebar"><Seg value={s.sidebarMode} options={[['expanded', 'Expanded'], ['compact', 'Compact (icons)']]} onChange={(v) => set({ sidebarMode: v })} /></Row>
+          <Group id="layout" title="Layout" desc="Shared sizing for the sidebar and reading column.">
+            <Row title="Sidebar"><Seg value={s.sidebarMode} options={[['expanded', 'Expanded'], ['compact', 'Icons only']]} onChange={(v) => set({ sidebarMode: v })} /></Row>
             <Row title="Sidebar width" desc="Width of the expanded sidebar."><Range value={s.sidebarWidth} min={200} max={320} step={4} unit="px" onChange={(v) => set({ sidebarWidth: v })} /></Row>
+            <Row title="Content width" desc="Maximum width of the feed, comments and the X timeline (X caps it at 860px)."><Range value={s.contentWidth} min={600} max={1100} step={20} unit="px" onChange={(v) => set({ contentWidth: v })} /></Row>
+            <Row title="Density" desc="Vertical spacing between posts on both platforms."><Seg<Density> value={s.density} options={[['cozy', 'Cozy'], ['regular', 'Regular'], ['tight', 'Tight']]} onChange={(v) => set({ density: v })} /></Row>
+          </Group>
+
+          <Group id="behavior" title="Behavior">
+            <Row title="Remember where you were" desc="Switching platforms from the Orbit menu resumes the page you last had open there."><Switch label="Remember interface state" on={s.rememberState} onChange={(v) => set({ rememberState: v })} /></Row>
+            <Row title="Keyboard shortcuts" desc="Orbit’s shortcuts on both platforms. Ctrl/⌘+K always opens the palette."><Switch label="Keyboard shortcuts" on={s.keyboard} onChange={(v) => set({ keyboard: v })} /></Row>
+            <Row title="Open external links in a new tab"><Switch label="External links in new tab" on={s.externalInNewTab} onChange={(v) => set({ externalInNewTab: v })} /></Row>
+          </Group>
+
+          <Group id="keyboard" title="Keyboard">
+            <div className="keys-grid">
+              <h4 className="plat-h"><PlatformIcon id="reddit" size={16} /> Reddit</h4>
+              {SHORTCUTS.map(([g, items]) => (
+                <div key={g} style={{ display: 'contents' }}>
+                  <h4>{g}</h4>
+                  {items.map(([l, keys]) => <div className="kr" key={l}><span>{l}</span><span>{keys.map((k, i) => <kbd className="kbd" key={i}>{k}</kbd>)}</span></div>)}
+                </div>
+              ))}
+              <h4 className="plat-h"><PlatformIcon id="x" size={16} /> X</h4>
+              {X_SHORTCUTS.map(([g, items]) => (
+                <div key={`x-${g}`} style={{ display: 'contents' }}>
+                  <h4>{g}</h4>
+                  {items.map(([l, keys]) => <div className="kr" key={l}><span>{l}</span><span>{keys.map((k, i) => <kbd className="kbd" key={i}>{k}</kbd>)}</span></div>)}
+                </div>
+              ))}
+            </div>
+          </Group>
+
+          <Group id="reddit" title="Reddit · Feed & reading" desc="Only affects Reddit.">
+            <Row title="Default feed layout" desc="Switch any time from the top bar or with keys 1–4."><Seg<Layout> value={s.layout} options={[['comfortable', 'Comfortable'], ['compact', 'Compact'], ['gallery', 'Gallery'], ['minimal', 'Minimal']]} onChange={(v) => set({ layout: v })} /></Row>
             <Row title="Reading mode" desc="Hides the right panel, widens type and calms the chrome for long reads."><Switch label="Reading mode" on={s.readingMode} onChange={(v) => set({ readingMode: v })} /></Row>
             <Row title="Compact media previews" desc="Smaller images and videos in feeds."><Switch label="Compact media" on={s.compactMedia} onChange={(v) => set({ compactMedia: v })} /></Row>
           </Group>
 
-          <Group id="content" title="Feed & content">
-            <Row title="Hide promoted posts" desc="Removes anything Reddit marks as promoted or an ad."><Switch label="Hide promoted" on={s.hidePromoted} onChange={(v) => set({ hidePromoted: v })} /></Row>
+          <Group id="content" title="Reddit · Content">
+            <Row title="Hide promoted posts" desc="Removes anything Reddit marks as promoted or an ad. (X has its own switch.)"><Switch label="Hide promoted" on={s.hidePromoted} onChange={(v) => set({ hidePromoted: v })} /></Row>
             <Row title="Blur NSFW media"><Switch label="Blur NSFW" on={s.blurNsfw} onChange={(v) => set({ blurNsfw: v })} /></Row>
             <Row title="Blur spoilers"><Switch label="Blur spoilers" on={s.blurSpoilers} onChange={(v) => set({ blurSpoilers: v })} /></Row>
             <Row title="Dim posts you’ve opened"><Switch label="Dim visited" on={s.dimVisited} onChange={(v) => set({ dimVisited: v })} /></Row>
@@ -150,7 +212,7 @@ function Options() {
             <Row title="Unread badge on toolbar icon" desc="Checks your inbox count every few minutes using your Reddit session."><Switch label="Unread badge" on={s.badge} onChange={(v) => set({ badge: v })} /></Row>
           </Group>
 
-          <Group id="navigation" title="Sidebar" desc="Reorder or hide sidebar sections. You can also do this in-app with the pencil button at the bottom of the sidebar.">
+          <Group id="navigation" title="Reddit · Sidebar" desc="Reorder or hide sidebar sections. You can also do this in-app with the pencil button at the bottom of the sidebar.">
             <div className="row col">
               <div className="list-edit">
                 {s.navOrder.map((id, i) => {
@@ -186,12 +248,12 @@ function Options() {
             </Row>
           </Group>
 
-          <Group id="filters" title="Filters" desc="Applied to Home, Popular, All and multireddits. A community’s own page always shows everything.">
+          <Group id="filters" title="Reddit · Filters" desc="Applied to Home, Popular, All and multireddits. A community’s own page always shows everything.">
             <Row title="Muted communities" col><TagList items={s.mutedSubs} prefix="r/" placeholder="r/community" onChange={(v) => set({ mutedSubs: v })} /></Row>
             <Row title="Muted keywords" desc="Posts whose titles contain any of these words are hidden (case-insensitive)." col><TagList items={s.mutedKeywords} placeholder="keyword or phrase" onChange={(v) => set({ mutedKeywords: v })} /></Row>
           </Group>
 
-          <Group id="interface" title="Interface elements" desc="Hide things you don’t need.">
+          <Group id="interface" title="Reddit · Interface elements" desc="Hide things you don’t need.">
             {([
               ['voteScore', 'Vote counts in feeds', 'Judge posts on their own merit.'],
               ['flairs', 'Post & user flairs', ''],
@@ -206,35 +268,46 @@ function Options() {
             ))}
           </Group>
 
-          <Group id="keyboard" title="Keyboard">
-            <Row title="Keyboard shortcuts" desc="Ctrl/⌘+K always opens the quick switcher."><Switch label="Keyboard shortcuts" on={s.keyboard} onChange={(v) => set({ keyboard: v })} /></Row>
-            <div className="keys-grid">
-              {SHORTCUTS.map(([g, items]) => (
-                <div key={g} style={{ display: 'contents' }}>
-                  <h4>{g}</h4>
-                  {items.map(([l, keys]) => <div className="kr" key={l}><span>{l}</span><span>{keys.map((k, i) => <kbd className="kbd" key={i}>{k}</kbd>)}</span></div>)}
-                </div>
-              ))}
-            </div>
+          <Group id="x" title="X · Timeline" desc="Only affects X. X keeps doing the real work — posting, replies, DMs — Orbit redesigns how it looks and reads.">
+            <Row title="Post style" desc="Cards give every post its own surface; List is a classic continuous timeline."><Seg<XPostStyle> value={s.x.postStyle} options={[['cards', 'Cards'], ['list', 'List']]} onChange={(v) => setX({ postStyle: v })} /></Row>
+            <Row title="Media size" desc="Caps image and video height so media never takes over the screen."><Seg<XMediaSize> value={s.x.mediaSize} options={[['compact', 'Compact'], ['balanced', 'Balanced'], ['full', 'Full']]} onChange={(v) => setX({ mediaSize: v })} /></Row>
+            <Row title="Default Home feed"><Seg<XDefaultFeed> value={s.x.defaultFeed} options={[['remember', 'Last used'], ['foryou', 'For you'], ['following', 'Following']]} onChange={(v) => setX({ defaultFeed: v })} /></Row>
+            <Row title="Orbit media viewer" desc="Open photos in Orbit’s viewer (zoom, keyboard, thumbnails). Shift-click keeps X’s own."><Switch label="Orbit media viewer" on={s.x.lightbox} onChange={(v) => setX({ lightbox: v })} /></Row>
+            <Row title="Highlight the author’s thread" desc="On a post page, mark the author’s own posts so long threads are easy to follow."><Switch label="Thread focus" on={s.x.threadFocus} onChange={(v) => setX({ threadFocus: v })} /></Row>
           </Group>
 
-          <Group id="data" title="Data & privacy" desc="Reddify has no servers. Settings sync through your Chrome profile; history stays on this device.">
+          <Group id="x-hide" title="X · Hide elements" desc="Declutter X. Everything stays one switch away.">
+            {([
+              ['hidePromoted', 'Promoted posts', 'Ads in timelines and replies.'],
+              ['hideViews', 'View counts', 'The analytics count on every post.'],
+              ['hideComposer', 'Inline composer on Home', 'Write from the Post button or press N instead.'],
+              ['hideWhoToFollow', '“Who to follow”', 'Suggestions in the timeline and the right panel.'],
+              ['hideTrends', 'Trends', '“What’s happening” in the right panel.'],
+              ['hidePremium', 'Premium upsells', 'Subscription prompts.'],
+              ['hideRail', 'Right panel', 'The whole right-hand column.'],
+            ] as [keyof XSettings, string, string][]).map(([k, t, d]) => (
+              <Row key={k} title={`Hide ${t.charAt(0) === '“' ? t : t.charAt(0).toLowerCase() + t.slice(1)}`} desc={d}><Switch label={`Hide ${t}`} on={s.x[k] as boolean} onChange={(v) => setX({ [k]: v } as Partial<XSettings>)} /></Row>
+            ))}
+          </Group>
+
+          <Group id="data" title="Data & privacy" desc="Orbit has no servers. Settings sync through your Chrome profile; history stays on this device.">
             <Row title="Export settings"><button className="btn" onClick={exportJson}><Icon name="share" size={15} />Export JSON</button></Row>
             <Row title="Import settings">
               <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void importJson(f); e.target.value = ''; }} />
               <button className="btn" onClick={() => fileRef.current?.click()}>Choose file…</button>
             </Row>
-            <Row title="Clear history" desc="Recently viewed posts, communities and searches."><button className="btn danger" onClick={() => { if (confirm('Clear all Reddify history on this device?')) void saveLocal(DEFAULT_LOCAL); }}><Icon name="trash" size={15} />Clear</button></Row>
-            <Row title="Reset all settings"><button className="btn danger" onClick={() => { if (confirm('Reset every Reddify setting to its default?')) set(DEFAULT_SETTINGS); }}>Reset to defaults</button></Row>
+            <Row title="Clear history" desc="Recently viewed posts, communities, searches and the last page remembered on each platform."><button className="btn danger" onClick={() => { if (confirm('Clear all Orbit history on this device?')) { void saveLocal(DEFAULT_LOCAL); void chrome.storage.local.remove(['orbitSpots', 'orbitXSession']); } }}><Icon name="trash" size={15} />Clear</button></Row>
+            <Row title="Reset all settings"><button className="btn danger" onClick={() => { if (confirm('Reset every Orbit setting to its default?')) set(DEFAULT_SETTINGS); }}>Reset to defaults</button></Row>
           </Group>
 
           <Group id="about" title="About">
             <div className="note">
-              <b>Reddify {chrome.runtime.getManifest().version}</b> rebuilds Reddit’s interface on top of Reddit’s own JSON endpoints, using the session you’re already logged into. It never reads or stores your password or cookies, and sends nothing anywhere except reddit.com.
+              <b>Orbit {chrome.runtime.getManifest().version}</b> is one client for Reddit and X. It runs entirely in your browser, using the sessions you’re already logged into. It never reads or stores your passwords, cookies or tokens, and sends nothing anywhere except to the sites themselves.
               <ul>
-                <li>Pages Reddify doesn’t redesign (settings, post submission, chat, mod tools, wikis) open in classic Reddit, with a button to come back.</li>
-                <li>Press <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">R</kbd> to flip the current tab between Reddify and classic Reddit.</li>
-                <li>Reddit doesn’t offer saved-post folders to regular accounts, so saved items are organized by community instead.</li>
+                <li><b>Reddit:</b> Orbit rebuilds the interface on top of Reddit’s own JSON endpoints. Pages it doesn’t redesign (settings, post submission, chat, mod tools, wikis) open in classic Reddit, with a button to come back.</li>
+                <li><b>X:</b> X’s own app keeps running underneath — posting, replies, DMs, notifications and log-in are all native. Orbit re-themes it, replaces its navigation and adds reading tools.</li>
+                <li>Click the Orbit logo (or press <kbd className="kbd">Alt</kbd> <kbd className="kbd">O</kbd>) on either site to switch platforms.</li>
+                <li>Press <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">O</kbd> to flip the current tab between Orbit and the classic site.</li>
               </ul>
             </div>
           </Group>

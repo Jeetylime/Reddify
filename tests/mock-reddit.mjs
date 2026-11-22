@@ -1,5 +1,5 @@
 // A deterministic fake reddit.com for end-to-end tests. Serves Reddit-shaped JSON for every
-// endpoint Reddify uses, a stub "native" HTML page for everything else, and generated images.
+// endpoint Orbit uses, a stub "native" HTML page for everything else, and generated images.
 
 const SUBS = {
   pics: { title: 'Pics', color: '#ff4500', desc: 'A place for photographs, pictures, and other images.', subs: 31200000 },
@@ -11,7 +11,7 @@ const SUBS = {
 };
 const CANON = { pics: 'pics', programming: 'programming', design: 'Design', earthporn: 'EarthPorn', askreddit: 'AskReddit', rust: 'rust' };
 const NOW = Math.floor(Date.now() / 1000);
-const ME = 'reddify_tester';
+const ME = 'orbit_tester';
 
 const TITLES = [
   'Golden hour over the Dolomites, shot this morning after a 4am hike',

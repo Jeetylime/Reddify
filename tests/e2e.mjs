@@ -20,7 +20,7 @@ const writes = [];
 let ctx, page, extId, profile;
 
 async function launch() {
-  profile = mkdtempSync(join(tmpdir(), 'reddify-e2e-'));
+  profile = mkdtempSync(join(tmpdir(), 'orbit-e2e-'));
   ctx = await chromium.launchPersistentContext(profile, {
     channel: 'chromium', headless: true, viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1,
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
@@ -59,7 +59,7 @@ async function test(name, fn) {
 }
 const assert = (c, msg) => { if (!c) throw new Error(msg); };
 const shot = (n, p = page) => p.screenshot({ path: join(OUT, `${n}.png`) });
-const app = () => page.locator('#reddify-app');
+const app = () => page.locator('#orbit-app');
 const posts = () => page.locator('[data-nav="post"]');
 const settle = (ms = 350) => page.waitForTimeout(ms);
 const storage = () => page.evaluate(() => 0); // placeholder for readability
@@ -71,7 +71,7 @@ async function getSettings() {
 }
 
 await launch();
-console.log(`\nReddify E2E — extension ${extId}\n`);
+console.log(`\nOrbit E2E — extension ${extId}\n`);
 
 await test('activates on reddit.com and hides the native UI', async () => {
   await page.goto(`${R}/`);
@@ -80,7 +80,7 @@ await test('activates on reddit.com and hides the native UI', async () => {
   const bodyDisplay = await page.evaluate(() => getComputedStyle(document.body).display);
   assert(bodyDisplay === 'none', `native body should be hidden, got ${bodyDisplay}`);
   assert(await page.locator('#native-reddit').isHidden(), 'native page visible');
-  assert(/Reddify/.test(await page.title()), 'document title not set');
+  assert(/Orbit/.test(await page.title()), 'document title not set');
 });
 
 await test('home feed renders posts with metadata, flair, media and actions', async () => {
@@ -114,7 +114,7 @@ await test('NSFW and spoiler media are blurred until revealed', async () => {
 await test('infinite scroll loads the next page', async () => {
   const before = await posts().count();
   await page.locator('.scroller').evaluate((el) => el.scrollTo(0, el.scrollHeight));
-  await page.waitForFunction((b) => document.querySelector('#reddify-app').shadowRoot.querySelectorAll('[data-nav="post"]').length > b, before, { timeout: 8000 });
+  await page.waitForFunction((b) => document.querySelector('#orbit-app').shadowRoot.querySelectorAll('[data-nav="post"]').length > b, before, { timeout: 8000 });
   await page.locator('.scroller').evaluate((el) => el.scrollTo(0, 0));
 });
 
@@ -186,7 +186,7 @@ await test('comments: collapse/expand, load more, keyboard thread navigation', a
   assert(!(await first.evaluate((el) => el.classList.contains('collapsed'))), 'did not expand');
   const before = await page.locator('.cmt').count();
   await page.locator('.more-btn', { hasText: '3 more replies' }).click();
-  await page.waitForFunction((b) => document.querySelector('#reddify-app').shadowRoot.querySelectorAll('.cmt').length >= b + 3, before, { timeout: 5000 });
+  await page.waitForFunction((b) => document.querySelector('#orbit-app').shadowRoot.querySelectorAll('.cmt').length >= b + 3, before, { timeout: 5000 });
   await page.keyboard.press('j');
   await page.keyboard.press('j');
   assert(await page.locator('.thread.focused').count() === 1, 'j did not focus a thread');
@@ -290,7 +290,7 @@ await test('search with suggestions, tabs and results', async () => {
 
 await test('profile and saved views (with community filter chips)', async () => {
   await page.locator('.sidebar a[title="Saved"]').click();
-  await page.waitForURL(/\/user\/reddify_tester\/saved/);
+  await page.waitForURL(/\/user\/orbit_tester\/saved/);
   await page.locator('.chips .chip').first().waitFor();
   await posts().first().waitFor();
   const all = await posts().count();
@@ -375,8 +375,8 @@ await test('unsupported pages stay native with a launcher button', async () => {
   await page.locator('#native-reddit').waitFor();
   assert(await page.locator('#native-reddit').isVisible(), 'native page hidden');
   assert(await app().count() === 0, 'app mounted on unsupported page');
-  assert(await page.locator('#reddify-launcher').count() === 1, 'launcher missing');
-  await page.locator('#reddify-launcher button').click();
+  assert(await page.locator('#orbit-launcher').count() === 1, 'launcher missing');
+  await page.locator('#orbit-launcher button').click();
   await page.waitForURL(`${R}/`);
   await posts().first().waitFor();
 });
@@ -386,7 +386,7 @@ await test('classic mode toggle and back', async () => {
   await Promise.all([page.waitForEvent('load'), page.locator('.pop-item', { hasText: 'Open in classic Reddit' }).click()]);
   await page.locator('#native-reddit').waitFor();
   assert(await page.locator('#native-reddit').isVisible(), 'classic page not visible');
-  await page.locator('#reddify-launcher button').click();
+  await page.locator('#orbit-launcher button').click();
   await posts().first().waitFor();
 });
 
@@ -395,7 +395,7 @@ await test('settings page edits apply live to open Reddit tabs', async () => {
   watch(opts);
   await opts.goto(`chrome-extension://${extId}/options.html`);
   await opts.locator('.sw[title="Emerald"]').click();
-  await opts.locator('.row', { hasText: 'Hide promoted posts' }).locator('.switch').isVisible();
+  await opts.locator('#content .row', { hasText: 'Hide promoted posts' }).locator('.switch').isVisible();
   await opts.waitForTimeout(300);
   await opts.screenshot({ path: join(OUT, '16-options.png'), fullPage: false });
   await opts.locator('a[href="#filters"]').click();
@@ -403,7 +403,7 @@ await test('settings page edits apply live to open Reddit tabs', async () => {
   await opts.locator('.row', { hasText: 'Muted keywords' }).locator('button', { hasText: 'Add' }).click();
   await opts.waitForTimeout(300);
   await page.bringToFront();
-  await page.waitForFunction(() => getComputedStyle(document.querySelector('#reddify-app').shadowRoot.querySelector('.root')).getPropertyValue('--accent').trim() === '#2fc58a', null, { timeout: 4000 });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#orbit-app').shadowRoot.querySelector('.root')).getPropertyValue('--accent').trim() === '#2fc58a', null, { timeout: 4000 });
   const s = await getSettings();
   assert(s.mutedKeywords.includes('Northern lights'), 'keyword filter not saved');
   const pop = await ctx.newPage();
@@ -415,7 +415,7 @@ await test('settings page edits apply live to open Reddit tabs', async () => {
   await opts.close();
 });
 
-await test('disabling Reddify restores native Reddit; re-enabling brings it back', async () => {
+await test('disabling Orbit restores native Reddit; re-enabling brings it back', async () => {
   const sw = ctx.serviceWorkers()[0];
   await sw.evaluate(async () => { const { settings } = await chrome.storage.sync.get('settings'); await chrome.storage.sync.set({ settings: { ...settings, enabled: false } }); });
   await page.locator('#native-reddit').waitFor({ state: 'visible', timeout: 4000 });
@@ -429,10 +429,10 @@ await test('performance: initial render, DOM size, and no long tasks while scrol
   await page.goto(`${R}/r/pics`);
   await posts().first().waitFor();
   const firstPost = Date.now() - t0;
-  const nodes = await page.evaluate(() => document.querySelector('#reddify-app').shadowRoot.querySelectorAll('*').length);
+  const nodes = await page.evaluate(() => document.querySelector('#orbit-app').shadowRoot.querySelectorAll('*').length);
   await page.bringToFront();
   const longTasks = await page.evaluate(async () => {
-    const sc = document.querySelector('#reddify-app').shadowRoot.querySelector('.scroller');
+    const sc = document.querySelector('#orbit-app').shadowRoot.querySelector('.scroller');
     const tasks = [];
     const po = new PerformanceObserver((l) => l.getEntries().forEach((e) => tasks.push(e.duration)));
     po.observe({ type: 'longtask', buffered: false });
@@ -459,7 +459,7 @@ await test('narrow (mobile-width) layout works', async () => {
   await page.setViewportSize({ width: 1440, height: 900 });
 });
 
-await test('follows URL changes made outside Reddify (e.g. by Reddit’s hidden app)', async () => {
+await test('follows URL changes made outside Orbit (e.g. by Reddit’s hidden app)', async () => {
   await page.evaluate(() => history.replaceState(null, '', '/r/rust/'));
   await page.locator('.head-card h2', { hasText: 'r/rust' }).waitFor({ timeout: 4000 });
 });

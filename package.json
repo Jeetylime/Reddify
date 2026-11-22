@@ -1,15 +1,17 @@
 {
-  "name": "reddify",
-  "version": "1.0.0",
+  "name": "orbit",
+  "version": "2.0.0",
   "private": true,
-  "description": "Reddify — a premium interface overhaul for Reddit (Chrome MV3 extension)",
+  "description": "Orbit — one premium client for Reddit and X (Chrome MV3 extension)",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/icons.mjs",
-    "test": "npm run build && node tests/e2e.mjs",
+    "test": "npm run build && node tests/e2e.mjs && node tests/e2e-x.mjs",
+    "test:reddit": "npm run build && node tests/e2e.mjs",
+    "test:x": "npm run build && node tests/e2e-x.mjs",
     "package": "npm run build && node scripts/zip.mjs"
   },
   "dependencies": {

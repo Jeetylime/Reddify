@@ -1,0 +1,137 @@
+/*
+ * Orbit skin for X — declared in the manifest, so it is CSP-exempt and present from document_start.
+ * Every rule is gated by classes Orbit's content script sets on <html>:
+ *   .orbit-x          the skin is on (colours, type, posts)
+ *   .orbit-x-chrome   Orbit's sidebar + top bar replace X's navigation (signed-in only)
+ *   .orbit-x-cards / -list, .orbit-x-hide-*            user preferences
+ *   [data-orbit-route] current page kind;  [data-orbit-*] marks on X's own elements (see decorate.ts)
+ * Colours come from the --o-* tokens (core/tokens.css) and from X's own --x-* tokens, which Orbit re-points.
+ */
+
+/* ============ base ============ */
+html.orbit-x { background-color: var(--o-bg, #121316) !important; scrollbar-color: var(--o-border-2, #333) transparent; }
+html.orbit-x body { background: transparent !important; }
+/* X hard-codes its Chirp font on body and [lang]; Orbit's typeface replaces it (Japanese keeps X's choice) */
+html.orbit-x :is(body, [lang]:not(:lang(ja)):not(html), .font-chirp) { font-family: var(--o-font, system-ui) !important; }
+html.orbit-x ::selection { background: color-mix(in srgb, var(--o-accent, #7c83ff) 30%, transparent); }
+html.orbit-x #orbit-x-chrome { position: fixed !important; inset: 0 !important; z-index: 2147482000 !important; pointer-events: none !important; }
+html.orbit-x.orbit-x-overlay #orbit-x-chrome { z-index: -1 !important; }
+
+/* ============ layout: Orbit's sidebar and top bar take the edges ============ */
+html.orbit-x-chrome body { padding-left: var(--o-sidebar-w, 244px) !important; padding-top: var(--o-top-h, 56px) !important; box-sizing: border-box !important; }
+html.orbit-x-chrome.orbit-x-narrow body { padding-left: 0 !important; }
+html.orbit-x-chrome :is(header[role="banner"], [data-orbit-native-nav]) { display: none !important; }
+html.orbit-x-chrome [data-orbit-shell] { max-width: none !important; }
+html.orbit-x-chrome [class*="--x-main-column-width"] { --x-main-column-width: var(--o-col-w, 640px) !important; }
+html.orbit-x-chrome { --x-timeline-max-width: 100%; }
+html.orbit-x-chrome [data-orbit-layout] { grid-template-columns: minmax(0, var(--o-col-w, 640px)) minmax(290px, 350px) !important; justify-content: center !important; column-gap: 28px !important; padding: 0 20px; }
+html.orbit-x-chrome main { border-color: transparent !important; }
+html.orbit-x-chrome.orbit-x-cards main { background: transparent !important; }
+/* the older client */
+html.orbit-x-chrome [data-testid="primaryColumn"] { max-width: var(--o-col-w, 640px) !important; width: 100% !important; border-color: transparent !important; }
+
+/* the rail gives way before the timeline gets cramped */
+@media (max-width: 1260px) { html.orbit-x-chrome:not(.orbit-x-sb-compact) [data-orbit-rail] { display: none !important; } html.orbit-x-chrome:not(.orbit-x-sb-compact) [data-orbit-layout] { grid-template-columns: minmax(0, var(--o-col-w, 640px)) !important; } }
+@media (max-width: 1080px) { html.orbit-x-chrome [data-orbit-rail] { display: none !important; } html.orbit-x-chrome [data-orbit-layout] { grid-template-columns: minmax(0, var(--o-col-w, 640px)) !important; } }
+html.orbit-x-hide-rail [data-orbit-rail] { display: none !important; }
+html.orbit-x-hide-rail [data-orbit-layout] { grid-template-columns: minmax(0, var(--o-col-w, 640px)) !important; }
+
+/* X's own page headers: glass, docked under Orbit's top bar; the Home one is mirrored into Orbit's bar */
+html.orbit-x-chrome :is([data-orbit-native-header="home"], [data-orbit-native-header="title"]) { display: none !important; }
+html.orbit-x-chrome [data-orbit-sticky] { backdrop-filter: saturate(1.5) blur(18px) !important; }
+html.orbit-x [data-tab-underline] { background: var(--o-accent) !important; height: 3px !important; border-radius: 3px !important; }
+html.orbit-x [role="tab"][aria-selected="true"] { color: var(--o-text) !important; }
+
+/* ============ timeline posts ============ */
+html.orbit-x [data-orbit-post] :is([data-testid="tweetText"], div[lang][dir]) {
+  font-family: var(--o-font-read, inherit) !important; font-size: var(--o-fs, 14px) !important; line-height: var(--o-lh, 1.55) !important;
+  color: var(--o-text) !important; letter-spacing: -0.004em; overflow-wrap: anywhere;
+}
+html.orbit-x [data-orbit-post] :is([data-testid="tweetText"], div[lang][dir]) a { color: var(--o-accent) !important; }
+html.orbit-x [data-orbit-post] time, html.orbit-x [data-orbit-post] a[href*="/status/"]:not(:has(img)) { color: var(--o-text-3) !important; }
+html.orbit-x [data-orbit-post] [data-post-avatar] img, html.orbit-x [data-orbit-post] [data-testid="Tweet-User-Avatar"] img { border-radius: 50% !important; }
+html.orbit-x [data-orbit-post] .x-avatar { border-radius: 50% !important; overflow: hidden; }
+html.orbit-x [data-orbit-social] { color: var(--o-text-3) !important; font-size: 12.5px !important; font-weight: 600 !important; }
+html.orbit-x [data-orbit-post] [aria-label="Verified account"] svg, html.orbit-x [data-orbit-post] [data-testid="icon-verified"] { filter: saturate(.9); }
+
+/* action bar */
+html.orbit-x [data-orbit-post] [role="group"] { margin-top: 4px !important; max-width: 560px; color: var(--o-text-3); }
+html.orbit-x [data-orbit-post] [role="group"] :is(button, a) { border-radius: 999px; transition: color var(--o-t-fast, .1s) ease, background-color var(--o-t-fast, .1s) ease; }
+html.orbit-x [data-orbit-post] [data-engagement-action="reply"]:hover :is(a, button) { color: var(--o-accent) !important; }
+html.orbit-x [data-orbit-post] [data-engagement-action="like"] :is(button[aria-pressed="true"]), html.orbit-x [data-orbit-post] [data-engagement-action="like"]:hover button, html.orbit-x [data-orbit-post] [data-testid="unlike"] { color: var(--o-like) !important; }
+html.orbit-x [data-orbit-post] [data-engagement-action="retweet"] :is(button[aria-pressed="true"]), html.orbit-x [data-orbit-post] [data-engagement-action="retweet"]:hover button, html.orbit-x [data-orbit-post] [data-testid="unretweet"] { color: var(--o-repost) !important; }
+html.orbit-x [data-orbit-post] [data-engagement-action="bookmark"] button[aria-pressed="true"], html.orbit-x [data-orbit-post] [data-testid="removeBookmark"] { color: var(--o-accent) !important; }
+html.orbit-x [data-orbit-post] [dir="ltr"] { font-variant-numeric: tabular-nums; }
+html.orbit-x-hide-views [data-orbit-post] :is([data-engagement-action="generic"]:has(use[href="#icon-bar-chart"], [data-icon="icon-bar-chart"]), a[href$="/analytics"]) { display: none !important; }
+
+/* media: rounded, framed, and never taller than the chosen size */
+html.orbit-x [data-orbit-media] {
+  border-radius: 14px !important; border-color: var(--o-border) !important; background-color: var(--o-media-bg, #0d0e10) !important;
+  max-width: min(100%, calc(var(--o-media-h, 520px) / var(--orbit-ar, .5625))) !important;
+}
+html.orbit-x [data-orbit-media] img { transition: filter var(--o-t, .18s) ease; }
+html.orbit-x [data-orbit-media] a:hover img { filter: brightness(1.06); }
+html.orbit-x [data-orbit-quote] { border-radius: 14px !important; border-color: var(--o-border-2) !important; background: var(--o-surface-2) !important; transition: border-color var(--o-t-fast, .1s); }
+html.orbit-x [data-orbit-quote]:hover { border-color: var(--o-accent-line) !important; }
+
+/* ---- cards (default) ---- */
+html.orbit-x-cards [data-orbit-cell] { padding-bottom: var(--o-gap, 10px) !important; border: 0 !important; background: transparent !important; }
+html.orbit-x-cards [data-orbit-cell] > [data-orbit-card], html.orbit-x-cards [data-orbit-cell][data-orbit-card] {
+  background: var(--o-surface) !important; border: 1px solid var(--o-border) !important; border-radius: 16px !important;
+  transition: border-color var(--o-t, .18s) ease, box-shadow var(--o-t, .18s) ease, background-color var(--o-t, .18s) ease;
+}
+html.orbit-x-cards [data-orbit-cell][data-orbit-card] { padding-bottom: 0 !important; margin-bottom: var(--o-gap, 10px) !important; }
+html.orbit-x-cards [data-orbit-card][data-orbit-chain] { padding-top: var(--o-pad, 12px) !important; padding-bottom: var(--o-pad, 12px) !important; }
+html.orbit-x-cards [data-orbit-cell]:hover > [data-orbit-card], html.orbit-x-cards [data-orbit-cell][data-orbit-card]:hover {
+  border-color: var(--o-border-2) !important; background: color-mix(in srgb, var(--o-surface) 92%, var(--o-text)) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .16);
+}
+html.orbit-x-cards [data-orbit-chain]:not([data-orbit-card]) { background: transparent !important; }
+html.orbit-x-cards main [data-orbit-cell]:first-of-type { margin-top: 12px; }
+html.orbit-x-cards [data-orbit-cell][data-orbit-joined-next] { padding-bottom: 0 !important; }
+html.orbit-x-cards [data-orbit-joined-next] > [data-orbit-card] { border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; border-bottom-color: transparent !important; }
+html.orbit-x-cards [data-orbit-joined-prev] > [data-orbit-card] { border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; border-top-width: 0 !important; }
+html.orbit-x-cards [data-orbit-joined-next]:hover > [data-orbit-card], html.orbit-x-cards [data-orbit-joined-prev]:hover > [data-orbit-card] { box-shadow: none; }
+
+/* ---- list ---- */
+html.orbit-x-list main { background: var(--o-surface) !important; border-left: 1px solid var(--o-border) !important; border-right: 1px solid var(--o-border) !important; }
+html.orbit-x-list [data-orbit-cell] { border-color: var(--o-border) !important; transition: background-color var(--o-t-fast, .1s); }
+html.orbit-x-list [data-orbit-cell]:hover { background: var(--o-hover) !important; }
+html.orbit-x-list [data-orbit-card][data-orbit-chain] { padding-top: var(--o-pad, 12px) !important; padding-bottom: var(--o-pad, 12px) !important; }
+
+/* threads & conversations */
+html.orbit-x [data-orbit-threadline] { background: var(--o-thread) !important; width: 2px !important; border-radius: 2px !important; }
+html.orbit-x [data-orbit-focal] > [data-orbit-card], html.orbit-x [data-orbit-focal][data-orbit-card] { border-color: var(--o-accent-line) !important; box-shadow: 0 0 0 1px var(--o-accent-line), 0 12px 32px rgba(0, 0, 0, .22) !important; }
+html.orbit-x [data-orbit-focal] [data-orbit-post] :is([data-testid="tweetText"], div[lang][dir]) { font-size: calc(var(--o-fs, 14px) * 1.22) !important; line-height: calc(var(--o-lh, 1.55) + .02) !important; }
+html.orbit-x-thread-focus [data-orbit-op]:not([data-orbit-focal]) > [data-orbit-card] { box-shadow: inset 3px 0 0 var(--o-accent) !important; }
+html.orbit-x-thread-focus.orbit-x-list [data-orbit-op]:not([data-orbit-focal]) { box-shadow: inset 3px 0 0 var(--o-accent) !important; }
+html.orbit-x [data-orbit-filtered] { display: none !important; }
+
+/* keyboard focus (X's own J/K navigation focuses posts) */
+html.orbit-x [data-orbit-post]:focus-visible { outline: none !important; }
+html.orbit-x-cards [data-orbit-cell]:has([data-orbit-post]:focus-visible) > [data-orbit-card] { border-color: var(--o-accent) !important; box-shadow: 0 0 0 3px var(--o-accent-soft) !important; }
+html.orbit-x-list [data-orbit-cell]:has([data-orbit-post]:focus-visible) { box-shadow: inset 3px 0 0 var(--o-accent) !important; background: var(--o-hover) !important; }
+
+/* promoted, suggestions, composer */
+html.orbit-x-hide-promoted [data-orbit-promoted] { display: none !important; }
+html.orbit-x-hide-wtf [data-orbit-wtf] { display: none !important; }
+html.orbit-x-cards [data-orbit-wtf] { background: var(--o-surface) !important; border: 1px solid var(--o-border) !important; border-radius: 16px !important; margin-bottom: var(--o-gap, 10px) !important; overflow: hidden; }
+html.orbit-x-cards [data-orbit-composer] { background: var(--o-surface) !important; border: 1px solid var(--o-border) !important; border-radius: 16px !important; margin: 12px 0 var(--o-gap, 10px) !important; transition: border-color var(--o-t, .18s); }
+html.orbit-x-cards [data-orbit-composer]:focus-within { border-color: var(--o-accent-line) !important; box-shadow: 0 0 0 3px var(--o-accent-soft); }
+html.orbit-x-hide-composer[data-orbit-route="home"] [data-orbit-composer] { display: none !important; }
+html.orbit-x-hide-premium :is([data-testid="super-upsell-UpsellCardRenderCalled"], [data-testid="verified_profile_upsell"]) { display: none !important; }
+
+/* ============ right rail ============ */
+html.orbit-x-chrome [data-orbit-rail-section="search"] { display: none !important; }
+html.orbit-x [data-orbit-rail] :is(section, [data-orbit-rail-section]):not(nav):not([data-orbit-rail-section="search"]) {
+  background: var(--o-surface) !important; background-image: none !important; border: 1px solid var(--o-border) !important; border-radius: 16px !important;
+}
+html.orbit-x [data-orbit-rail] h2 { font-size: 15px !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+html.orbit-x [data-orbit-rail-section="footer"] { opacity: .75; }
+html.orbit-x-hide-trends [data-orbit-rail-section="trends"], html.orbit-x-hide-wtf [data-orbit-rail-section="follow"], html.orbit-x-hide-premium [data-orbit-rail-section="premium"] { display: none !important; }
+
+/* ============ menus, popovers, inputs ============ */
+html.orbit-x [role="menu"]:not(#orbit-x-chrome *) { border-radius: 14px !important; border: 1px solid var(--o-border-2) !important; box-shadow: var(--o-shadow-pop) !important; background: var(--o-surface-2) !important; overflow: hidden; }
+html.orbit-x [role="menuitem"]:hover { background: var(--o-hover) !important; }
+html.orbit-x [role="textbox"][contenteditable="true"] { caret-color: var(--o-accent); }
+html.orbit-x :is(input, textarea)::placeholder { color: var(--o-text-3) !important; }
