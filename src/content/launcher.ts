@@ -10,22 +10,24 @@ export function showLauncher(label: string, onClick: () => void) {
   const sheet = new CSSStyleSheet();
   sheet.replaceSync(`
     button { all: unset; box-sizing: border-box; position: fixed; right: 18px; bottom: 18px; z-index: 2147483000; width: 42px; height: 42px; border-radius: 12px;
-      display: grid; place-items: center; cursor: pointer; background: #7c83ff; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15);
+      display: grid; place-items: center; cursor: pointer; background: linear-gradient(135deg, #959aff, #5b5ff2); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.15);
       transition: transform .16s cubic-bezier(.2,.8,.2,1), filter .16s; }
     button:hover { transform: translateY(-2px); filter: brightness(1.08); }
     button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-    svg { width: 24px; height: 24px; }`);
+    svg { width: 30px; height: 30px; }`);
   shadow.adoptedStyleSheets = [sheet];
   const b = document.createElement('button');
   b.title = label;
   b.setAttribute('aria-label', label);
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 32 32');
-  const path = document.createElementNS(NS, 'path');
-  path.setAttribute('fill', '#fff');
-  path.setAttribute('d', 'M10.5 23V9h6.4c3 0 4.9 1.7 4.9 4.3 0 1.9-1.1 3.3-2.9 3.9L22.4 23h-3.6l-3.2-5.5h-1.8V23zm3.3-8.3h2.9c1.2 0 1.9-.6 1.9-1.5s-.7-1.5-1.9-1.5h-2.9z');
-  svg.appendChild(path);
+  svg.setAttribute('viewBox', '0 0 128 128');
+  const bubble = document.createElementNS(NS, 'path');
+  bubble.setAttribute('fill', '#fff');
+  bubble.setAttribute('d', 'M38 26h52a17 17 0 0 1 17 17v31a17 17 0 0 1-17 17H63.5l-19.2 14.6c-2.3 1.7-5.4-.3-4.8-3.1L42.5 91H38a17 17 0 0 1-17-17V43a17 17 0 0 1 17-17z');
+  const chev = document.createElementNS(NS, 'path');
+  for (const [k, v] of [['d', 'M44.5 67.5 64 48l19.5 19.5'], ['fill', 'none'], ['stroke', '#6b6ff5'], ['stroke-width', '12.5'], ['stroke-linecap', 'round'], ['stroke-linejoin', 'round']]) chev.setAttribute(k, v);
+  svg.append(bubble, chev);
   b.appendChild(svg);
   b.addEventListener('click', onClick);
   shadow.appendChild(b);

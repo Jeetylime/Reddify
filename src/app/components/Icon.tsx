@@ -81,11 +81,19 @@ export function Icon({ name, size = 18, fill = false, style, className }: { name
   );
 }
 
+let logoId = 0;
+/** The Reddify mark — "Talk Up": a conversation bubble with an upvote. Follows the user's accent color. */
 export function Logo({ size = 24 }: { size?: number }) {
+  const id = `rdf-logo-${++logoId}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" style={{ flex: 'none' }}>
-      <rect width="32" height="32" rx="9" fill="var(--accent)" />
-      <path d="M10.5 23V9h6.4c3 0 4.9 1.7 4.9 4.3 0 1.9-1.1 3.3-2.9 3.9L22.4 23h-3.6l-3.2-5.5h-1.8V23zm3.3-8.3h2.9c1.2 0 1.9-.6 1.9-1.5s-.7-1.5-1.9-1.5h-2.9z" fill="var(--accent-fg)" />
+    <svg width={size} height={size} viewBox="0 0 128 128" aria-hidden="true" style={{ flex: 'none' }}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity=".28" /><stop offset=".5" stopColor="#fff" stopOpacity="0" /></linearGradient>
+      </defs>
+      <rect width="128" height="128" rx="30" fill="var(--accent)" />
+      <rect width="128" height="128" rx="30" fill={`url(#${id})`} />
+      <path d="M38 26h52a17 17 0 0 1 17 17v31a17 17 0 0 1-17 17H63.5l-19.2 14.6c-2.3 1.7-5.4-.3-4.8-3.1L42.5 91H38a17 17 0 0 1-17-17V43a17 17 0 0 1 17-17z" fill="var(--accent-fg)" />
+      <path d="M44.5 67.5 64 48l19.5 19.5" fill="none" stroke="var(--accent)" strokeWidth="12.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

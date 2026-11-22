@@ -6,11 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const out = resolve(dirname(fileURLToPath(import.meta.url)), '../src/icons');
 mkdirSync(out, { recursive: true });
-const svg = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f95ff"/><stop offset="1" stop-color="#6a71f2"/></linearGradient></defs>
-  <rect width="32" height="32" rx="${size <= 16 ? 7 : 8.5}" fill="url(#g)"/>
-  <path d="M10.5 23V9h6.4c3 0 4.9 1.7 4.9 4.3 0 1.9-1.1 3.3-2.9 3.9L22.4 23h-3.6l-3.2-5.5h-1.8V23zm3.3-8.3h2.9c1.2 0 1.9-.6 1.9-1.5s-.7-1.5-1.9-1.5h-2.9z" fill="#fff"/>
-</svg>`;
+import { readFileSync } from 'node:fs';
+const master = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../docs/brand/reddify-mark.svg'), 'utf8');
+const svg = (size) => master.replace('width="512" height="512"', `width="${size}" height="${size}"`);
 // Playwright is pre-installed globally here; it isn't a project dependency.
 const { chromium } = createRequire(import.meta.url)('playwright');
 const browser = await chromium.launch();

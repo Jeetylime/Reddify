@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/reddify-mark.svg" width="96" alt="Reddify logo"></p>
+
 # Reddify
 
 **A premium, keyboard-first redesign of Reddit — built as a Chrome extension.**
@@ -165,6 +167,10 @@ Please read these. Reddify only implements things that genuinely work, and these
 - **Rate limits**: Reddit limits JSON requests. Heavy rapid browsing can briefly show a "rate limited, retry" message.
 - **Fonts**: Reddify uses your system's UI font (SF Pro on macOS, Segoe UI on Windows) instead of downloading web fonts, which keeps it fast and compatible with Reddit's security policy.
 - **Domains**: `www.reddit.com` and `reddit.com` only. `old.reddit.com` and `new.reddit.com` are left alone.
+
+## Brand
+
+The Reddify mark, "Talk Up", is a conversation bubble with an upvote chevron. Source files are in `docs/brand/`: the mark, plus light and dark wordmarks. Run `npm run icons` to regenerate the extension PNGs from the master SVG. Inside the app, the mark follows your accent color.
 
 ## Privacy
 
