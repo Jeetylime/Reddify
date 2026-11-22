@@ -1,4 +1,4 @@
-// Renders the Reddify mark to PNG icons using the pre-installed Chromium (Playwright).
+// Renders the Orbit mark to PNG icons using the pre-installed Chromium (Playwright).
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const out = resolve(dirname(fileURLToPath(import.meta.url)), '../src/icons');
 mkdirSync(out, { recursive: true });
 import { readFileSync } from 'node:fs';
-const master = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../docs/brand/reddify-mark.svg'), 'utf8');
+const master = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../docs/brand/orbit-mark.svg'), 'utf8');
 const svg = (size) => master.replace('width="512" height="512"', `width="${size}" height="${size}"`);
 // Playwright is pre-installed globally here; it isn't a project dependency.
 const { chromium } = createRequire(import.meta.url)('playwright');

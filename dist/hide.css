@@ -1,6 +1,0 @@
-/* Injected declaratively (exempt from page CSP) at document_start so the native
-   Reddit UI never flashes before Reddify takes over. Only applies while the
-   content script has marked the page with .reddify-on. */
-html.reddify-on > body { display: none !important; }
-html.reddify-on { background: #121316 !important; color-scheme: dark; overflow: hidden !important; }
-html.reddify-on.reddify-light { background: #f1f2f5 !important; color-scheme: light; }

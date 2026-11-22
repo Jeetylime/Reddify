@@ -1,0 +1,68 @@
+/* Orbit design tokens — dark-first. Every surface, border and text colour in the UI derives from these. */
+.root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --r-xs: 4px; --r-sm: 6px; --r: 8px; --r-lg: 12px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --t-fast: 110ms; --t: 180ms;
+
+  --up: #ff6a3d;
+  --down: #6b8cff;
+  --danger: #ff5d5d;
+  --success: #34c38a;
+  --warn: #f0b429;
+
+  --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 50%, transparent);
+
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  letter-spacing: -0.006em;
+}
+
+.root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121316;
+  --surface: #17181c;
+  --surface-2: #1d1f24;
+  --surface-3: #26282e;
+  --hover: rgba(255, 255, 255, .045);
+  --active: rgba(255, 255, 255, .085);
+  --border: rgba(255, 255, 255, .07);
+  --border-2: rgba(255, 255, 255, .13);
+  --text: #ebecf0;
+  --text-2: #a5a8b2;
+  --text-3: #737784;
+  --scrim: rgba(6, 7, 9, .6);
+  --shadow-pop: 0 20px 50px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .35);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
+  --media-bg: #0d0e10;
+  --glass: rgba(18, 19, 22, .82);
+}
+
+.root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1f2f5;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --surface-3: #eceef2;
+  --hover: rgba(16, 22, 38, .045);
+  --active: rgba(16, 22, 38, .08);
+  --border: rgba(16, 22, 38, .085);
+  --border-2: rgba(16, 22, 38, .15);
+  --text: #15171c;
+  --text-2: #555a66;
+  --text-3: #878c98;
+  --scrim: rgba(20, 24, 34, .36);
+  --shadow-pop: 0 20px 46px rgba(20, 28, 50, .17), 0 2px 8px rgba(20, 28, 50, .08);
+  --shadow-sm: 0 1px 2px rgba(20, 28, 50, .08);
+  --media-bg: #e7e9ee;
+  --glass: rgba(255, 255, 255, .84);
+  --up: #f04a17;
+  --down: #4a6cf0;
+}

@@ -1,32 +1,42 @@
 {
   "manifest_version": 3,
-  "name": "Reddify",
-  "version": "1.0.0",
-  "description": "A premium, keyboard-friendly redesign of Reddit: fast feeds, better comments, a command palette and deep personalization.",
+  "name": "Orbit",
+  "version": "2.0.0",
+  "description": "One premium, keyboard-friendly client for Reddit and X: redesigned feeds and timelines, a shared design language and instant platform switching.",
   "minimum_chrome_version": "111",
   "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "permissions": ["storage", "alarms"],
-  "host_permissions": ["*://reddit.com/*", "*://www.reddit.com/*", "*://old.reddit.com/*"],
+  "host_permissions": [
+    "*://reddit.com/*", "*://www.reddit.com/*", "*://old.reddit.com/*",
+    "*://x.com/*", "*://www.x.com/*", "*://mobile.x.com/*", "*://twitter.com/*", "*://www.twitter.com/*", "*://mobile.twitter.com/*"
+  ],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
       "matches": ["*://reddit.com/*", "*://www.reddit.com/*"],
       "exclude_matches": ["*://*/api/*", "*://*/svc/*", "*://*/media*"],
-      "js": ["content.js"],
-      "css": ["hide.css"],
+      "js": ["content-reddit.js"],
+      "css": ["reddit.css"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://x.com/*", "*://www.x.com/*", "*://mobile.x.com/*", "*://twitter.com/*", "*://www.twitter.com/*", "*://mobile.twitter.com/*"],
+      "exclude_matches": ["*://*/i/api/*", "*://*/i/oauth2/*", "*://*/oauth/*"],
+      "js": ["content-x.js"],
+      "css": ["x.css"],
       "run_at": "document_start"
     }
   ],
   "action": {
-    "default_title": "Reddify",
+    "default_title": "Orbit",
     "default_popup": "popup.html",
     "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
   },
   "options_page": "options.html",
   "commands": {
-    "toggle-reddify": {
-      "suggested_key": { "default": "Alt+Shift+R" },
-      "description": "Switch between Reddify and classic Reddit on this page"
+    "toggle-orbit": {
+      "suggested_key": { "default": "Alt+Shift+O" },
+      "description": "Switch this tab between Orbit and the platform's classic site"
     }
   }
 }
