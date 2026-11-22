@@ -3,16 +3,18 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import './options.css';
 import { ACCENT_PRESETS, DEFAULT_LOCAL, DEFAULT_SETTINGS, SECTION_LABELS, loadSettings, mergeSettings, onSettingsChanged, reducedMotion, resolveTheme, saveLocal, saveSettings, themeVars } from '@core/settings';
-import type { Density, FontChoice, HideOptions, Layout, Motion, SectionId, Settings, Theme, XDefaultFeed, XMediaSize, XPostStyle, XSettings } from '@core/settings';
-import { SHORTCUTS, X_SHORTCUTS } from '@core/shortcuts';
+import { DEFAULT_YOUTUBE } from '@core/settings';
+import type { Density, FontChoice, HideOptions, Layout, Motion, SectionId, Settings, Theme, XDefaultFeed, XMediaSize, XPostStyle, XSettings, YTComments, YTGrid, YTRecs, YTShorts, YTThumb, YTWatchWidth, YouTubeSettings } from '@core/settings';
+import { SHORTCUTS, X_SHORTCUTS, YT_SHORTCUTS } from '@core/shortcuts';
 import { Icon, Logo, PlatformIcon } from '@core/Icon';
 import type { IconName } from '@core/Icon';
 
-type NavEntry = [string, string, IconName | 'reddit' | 'x'];
+type NavEntry = [string, string, IconName | 'reddit' | 'x' | 'youtube'];
 const SECTIONS: [string, NavEntry[]][] = [
   ['Orbit', [['general', 'General', 'layers'], ['appearance', 'Appearance', 'sun'], ['layout', 'Layout', 'sidebar'], ['behavior', 'Behavior', 'zap'], ['keyboard', 'Keyboard', 'keyboard']]],
   ['Reddit', [['reddit', 'Feed & reading', 'reddit'], ['content', 'Content', 'filter'], ['navigation', 'Sidebar', 'sidebar'], ['filters', 'Filters', 'eye-off'], ['interface', 'Interface elements', 'eye']]],
   ['X', [['x', 'Timeline', 'x'], ['x-hide', 'Hide elements', 'eye-off']]],
+  ['YouTube', [['youtube', 'Feed & watch page', 'youtube'], ['yt-hide', 'Hide elements', 'eye-off']]],
   ['More', [['data', 'Data & privacy', 'lock'], ['about', 'About', 'info']]],
 ];
 
@@ -73,6 +75,7 @@ function Options() {
   };
   const setHide = (k: keyof HideOptions, v: boolean) => set({ hide: { ...s.hide, [k]: v } });
   const setX = (patch: Partial<XSettings>) => set({ x: { ...s.x, ...patch } });
+  const setYT = (patch: Partial<YouTubeSettings>) => set({ youtube: { ...s.youtube, ...patch } });
   const moveSection = (id: SectionId, d: -1 | 1) => { const o = [...s.navOrder]; const i = o.indexOf(id); const j = i + d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; set({ navOrder: o }); };
 
   const exportJson = () => {
@@ -91,13 +94,13 @@ function Options() {
     <div className={`root ${reducedMotion(s) ? 'no-motion' : ''}`} data-theme={theme} style={themeVars(s) as React.CSSProperties}>
       <div className="layout">
         <nav className="nav" aria-label="Settings sections">
-          <div className="brand"><Logo size={34} /><div><b>Orbit</b><span>Settings · Reddit & X</span></div></div>
+          <div className="brand"><Logo size={34} /><div><b>Orbit</b><span>Reddit · X · YouTube</span></div></div>
           {SECTIONS.map(([group, items]) => (
             <div className="nav-group" key={group}>
               <div className="nav-h">{group}</div>
               {items.map(([id, label, icon]) => (
                 <a key={id} href={`#${id}`} className={active === id ? 'on' : ''}>
-                  {icon === 'reddit' || icon === 'x' ? <PlatformIcon id={icon} size={16} /> : <Icon name={icon} size={16} />}{label}
+                  {icon === 'reddit' || icon === 'x' || icon === 'youtube' ? <PlatformIcon id={icon} size={16} /> : <Icon name={icon} size={16} />}{label}
                 </a>
               ))}
             </div>
@@ -108,17 +111,17 @@ function Options() {
             <h1>Settings</h1>
             <span className={`saved-pill ${savedTick ? 'show' : ''}`} key={savedTick}><Icon name="check" size={14} />Saved · applies instantly to open tabs</span>
           </header>
-          <Group id="general" title="General" desc="Orbit is one client for both platforms. Turn it off everywhere, or per platform.">
+          <Group id="general" title="General" desc="Orbit is one client for Reddit, X and YouTube. Turn it off everywhere, or per platform.">
             <Row title="Enable Orbit" desc="Turn off to use the original sites everywhere. Switch a single tab with Alt+Shift+O."><Switch label="Enable Orbit" on={s.enabled} onChange={(v) => set({ enabled: v })} /></Row>
-            {(['reddit', 'x'] as const).map((p) => (
-              <Row key={p} title={p === 'reddit' ? 'Orbit on Reddit' : 'Orbit on X / Twitter'} desc={p === 'reddit' ? 'reddit.com and www.reddit.com' : 'x.com and twitter.com'}>
+            {([['reddit', 'Orbit on Reddit', 'reddit.com and www.reddit.com', 'Reddit'], ['x', 'Orbit on X / Twitter', 'x.com and twitter.com', 'X'], ['youtube', 'Orbit on YouTube', 'youtube.com (m.youtube.com gets the theme only)', 'YouTube']] as const).map(([p, title, desc, name]) => (
+              <Row key={p} title={title} desc={desc}>
                 <span className="plat"><PlatformIcon id={p} size={22} /></span>
-                <Switch label={`Orbit on ${p === 'reddit' ? 'Reddit' : 'X'}`} on={s.platforms[p]} onChange={(v) => set({ platforms: { ...s.platforms, [p]: v } })} />
+                <Switch label={`Orbit on ${name}`} on={s.platforms[p]} onChange={(v) => set({ platforms: { ...s.platforms, [p]: v } })} />
               </Row>
             ))}
           </Group>
 
-          <Group id="appearance" title="Appearance" desc="Shared by Reddit and X — change it once, both follow.">
+          <Group id="appearance" title="Appearance" desc="Shared by Reddit, X and YouTube — change it once, all three follow.">
             <Row title="Theme"><Seg<Theme> value={s.theme} options={[['dark', 'Dark'], ['light', 'Light'], ['system', 'System']]} onChange={(v) => set({ theme: v })} /></Row>
             <Row title="Accent color" desc="Used sparingly for selection, links, focus and primary actions.">
               <div className="swatches">
@@ -156,8 +159,8 @@ function Options() {
           <Group id="layout" title="Layout" desc="Shared sizing for the sidebar and reading column.">
             <Row title="Sidebar"><Seg value={s.sidebarMode} options={[['expanded', 'Expanded'], ['compact', 'Icons only']]} onChange={(v) => set({ sidebarMode: v })} /></Row>
             <Row title="Sidebar width" desc="Width of the expanded sidebar."><Range value={s.sidebarWidth} min={200} max={320} step={4} unit="px" onChange={(v) => set({ sidebarWidth: v })} /></Row>
-            <Row title="Content width" desc="Maximum width of the feed, comments and the X timeline (X caps it at 860px)."><Range value={s.contentWidth} min={600} max={1100} step={20} unit="px" onChange={(v) => set({ contentWidth: v })} /></Row>
-            <Row title="Density" desc="Vertical spacing between posts on both platforms."><Seg<Density> value={s.density} options={[['cozy', 'Cozy'], ['regular', 'Regular'], ['tight', 'Tight']]} onChange={(v) => set({ density: v })} /></Row>
+            <Row title="Content width" desc="Maximum width of the Reddit feed and the X timeline (X caps it at 860px). YouTube has its own watch-page width."><Range value={s.contentWidth} min={600} max={1100} step={20} unit="px" onChange={(v) => set({ contentWidth: v })} /></Row>
+            <Row title="Density" desc="Spacing between posts, videos and navigation items on every platform."><Seg<Density> value={s.density} options={[['cozy', 'Cozy'], ['regular', 'Regular'], ['tight', 'Tight']]} onChange={(v) => set({ density: v })} /></Row>
           </Group>
 
           <Group id="behavior" title="Behavior">
@@ -171,6 +174,13 @@ function Options() {
               <h4 className="plat-h"><PlatformIcon id="reddit" size={16} /> Reddit</h4>
               {SHORTCUTS.map(([g, items]) => (
                 <div key={g} style={{ display: 'contents' }}>
+                  <h4>{g}</h4>
+                  {items.map(([l, keys]) => <div className="kr" key={l}><span>{l}</span><span>{keys.map((k, i) => <kbd className="kbd" key={i}>{k}</kbd>)}</span></div>)}
+                </div>
+              ))}
+              <h4 className="plat-h"><PlatformIcon id="youtube" size={16} /> YouTube</h4>
+              {YT_SHORTCUTS.map(([g, items]) => (
+                <div key={`yt-${g}`} style={{ display: 'contents' }}>
                   <h4>{g}</h4>
                   {items.map(([l, keys]) => <div className="kr" key={l}><span>{l}</span><span>{keys.map((k, i) => <kbd className="kbd" key={i}>{k}</kbd>)}</span></div>)}
                 </div>
@@ -290,21 +300,44 @@ function Options() {
             ))}
           </Group>
 
+          <Group id="youtube" title="YouTube · Feed & watch page" desc="Only affects YouTube. The player, likes, subscriptions, comments and Premium stay YouTube’s own — Orbit redesigns everything around them.">
+            <Row title="Video grid" desc="Comfortable shows more detail, Compact fits more videos, Editorial features the lead video."><Seg<YTGrid> value={s.youtube.grid} options={[['comfortable', 'Comfortable'], ['compact', 'Compact'], ['editorial', 'Editorial']]} onChange={(v) => setYT({ grid: v })} /></Row>
+            <Row title="Thumbnail size" desc="Orbit fits as many columns as your window allows."><Seg<YTThumb> value={s.youtube.thumbSize} options={[['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']]} onChange={(v) => setYT({ thumbSize: v })} /></Row>
+            <Row title="Up next" desc="Where recommendations appear on the watch page."><Seg<YTRecs> value={s.youtube.recommendations} options={[['sidebar', 'Sidebar'], ['grid', 'Grid below'], ['list', 'Compact list']]} onChange={(v) => setYT({ recommendations: v })} /></Row>
+            <Row title="Watch page width"><Seg<YTWatchWidth> value={s.youtube.watchWidth} options={[['standard', 'Standard'], ['wide', 'Wide'], ['immersive', 'Immersive']]} onChange={(v) => setYT({ watchWidth: v })} /></Row>
+            <Row title="Comments"><Seg<YTComments> value={s.youtube.comments} options={[['threaded', 'Threaded cards'], ['compact', 'Compact']]} onChange={(v) => setYT({ comments: v })} /></Row>
+            <Row title="Shorts" desc="Focused dims neighbouring Shorts and adds an ambient backdrop."><Seg<YTShorts> value={s.youtube.shorts} options={[['focused', 'Focused'], ['classic', 'Classic']]} onChange={(v) => setYT({ shorts: v })} /></Row>
+            <Row title="Description previews" desc="Show video description snippets where YouTube provides them (search results)."><Switch label="Description previews" on={s.youtube.descriptions} onChange={(v) => setYT({ descriptions: v })} /></Row>
+            <Row title="Sidebar customisation" desc="Pin, hide and reorder items from the sidebar itself (pencil button). Reset here."><button className="btn" onClick={() => setYT({ navPinned: [], navHidden: [], navOrder: DEFAULT_YOUTUBE.navOrder, navCollapsed: DEFAULT_YOUTUBE.navCollapsed })}>Reset sidebar</button></Row>
+          </Group>
+
+          <Group id="yt-hide" title="YouTube · Hide elements" desc="Orbit never hides or alters ads.">
+            {([
+              ['hideShortsShelves', 'Shorts shelves', 'Shorts rows in Home, Subscriptions and search.'],
+              ['hideNewsShelves', 'Topic shelves', 'Breaking news and other topic rows on Home.'],
+              ['hideChips', 'Category chips', 'The filter row under the top bar on Home.'],
+              ['collapseComments', 'Comments until clicked', 'Click the comment count to show them.'],
+            ] as [keyof YouTubeSettings, string, string][]).map(([k, t, d]) => (
+              <Row key={k} title={`Hide ${t.charAt(0).toLowerCase()}${t.slice(1)}`} desc={d}><Switch label={`Hide ${t}`} on={s.youtube[k] as boolean} onChange={(v) => setYT({ [k]: v } as Partial<YouTubeSettings>)} /></Row>
+            ))}
+          </Group>
+
           <Group id="data" title="Data & privacy" desc="Orbit has no servers. Settings sync through your Chrome profile; history stays on this device.">
             <Row title="Export settings"><button className="btn" onClick={exportJson}><Icon name="share" size={15} />Export JSON</button></Row>
             <Row title="Import settings">
               <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void importJson(f); e.target.value = ''; }} />
               <button className="btn" onClick={() => fileRef.current?.click()}>Choose file…</button>
             </Row>
-            <Row title="Clear history" desc="Recently viewed posts, communities, searches and the last page remembered on each platform."><button className="btn danger" onClick={() => { if (confirm('Clear all Orbit history on this device?')) { void saveLocal(DEFAULT_LOCAL); void chrome.storage.local.remove(['orbitSpots', 'orbitXSession']); } }}><Icon name="trash" size={15} />Clear</button></Row>
+            <Row title="Clear history" desc="Recently viewed posts, communities, searches and the last page remembered on each platform."><button className="btn danger" onClick={() => { if (confirm('Clear all Orbit history on this device?')) { void saveLocal(DEFAULT_LOCAL); void chrome.storage.local.remove(['orbitSpots', 'orbitXSession', 'orbitYTSearches']); } }}><Icon name="trash" size={15} />Clear</button></Row>
             <Row title="Reset all settings"><button className="btn danger" onClick={() => { if (confirm('Reset every Orbit setting to its default?')) set(DEFAULT_SETTINGS); }}>Reset to defaults</button></Row>
           </Group>
 
           <Group id="about" title="About">
             <div className="note">
-              <b>Orbit {chrome.runtime.getManifest().version}</b> is one client for Reddit and X. It runs entirely in your browser, using the sessions you’re already logged into. It never reads or stores your passwords, cookies or tokens, and sends nothing anywhere except to the sites themselves.
+              <b>Orbit {chrome.runtime.getManifest().version}</b> is one client for Reddit, X and YouTube. It runs entirely in your browser, using the sessions you’re already logged into. It never reads or stores your passwords, cookies or tokens, and sends nothing anywhere except to the sites themselves.
               <ul>
                 <li><b>Reddit:</b> Orbit rebuilds the interface on top of Reddit’s own JSON endpoints. Pages it doesn’t redesign (settings, post submission, chat, mod tools, wikis) open in classic Reddit, with a button to come back.</li>
+                <li><b>YouTube:</b> YouTube’s own app keeps running underneath — the player, likes, subscriptions, comments, history, playlists, Premium and ads are YouTube’s. Orbit replaces the guide and masthead and redesigns feeds, the watch page, comments, Shorts and search.</li>
                 <li><b>X:</b> X’s own app keeps running underneath — posting, replies, DMs, notifications and log-in are all native. Orbit re-themes it, replaces its navigation and adds reading tools.</li>
                 <li>Click the Orbit logo (or press <kbd className="kbd">Alt</kbd> <kbd className="kbd">O</kbd>) on either site to switch platforms.</li>
                 <li>Press <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">O</kbd> to flip the current tab between Orbit and the classic site.</li>

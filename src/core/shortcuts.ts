@@ -14,3 +14,10 @@ export const X_SHORTCUTS: [string, [string, string[]][]][] = [
   ['Reading', [['Read the whole thread', ['⇧', 'R']], ['Open media in the Orbit viewer', ['Click', 'image']], ['Next / previous image', ['←', '→']], ['Close viewer', ['Esc']]]],
   ['Native X (unchanged)', [['Next / previous post', ['J', 'K']], ['Like · Reply · Repost', ['L', 'R', 'T']], ['Bookmark', ['B']], ['New post', ['N']], ['Go home · explore · notifications', ['G', 'H/E/N']]]],
 ];
+
+/** Orbit on YouTube adds a few shortcuts; YouTube's own player keys (K, J, L, F, T, M, C, <, >) keep working. */
+export const YT_SHORTCUTS: [string, [string, string[]][]][] = [
+  ['Orbit', [['Command palette', ['⌘/Ctrl', 'K']], ['Switch platform', ['⌥', 'O']], ['Search', ['/']], ['Toggle sidebar', ['\\']], ['Classic YouTube on this tab', ['⌥', '⇧', 'O']]]],
+  ['Player (YouTube’s own)', [['Play / pause', ['K']], ['Back / forward 10 s', ['J', 'L']], ['Theater mode', ['T']], ['Full screen', ['F']], ['Mute', ['M']], ['Captions', ['C']], ['Speed down / up', ['<', '>']]]],
+  ['Shorts', [['Previous / next short', ['↑', '↓']]]],
+];

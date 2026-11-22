@@ -73,6 +73,7 @@ export function Palette() {
     cmd('keys', 'Keyboard shortcuts', 'keyboard', openHelp, '?', 'help');
     cmd('settings', 'Orbit settings', 'settings', openSettings, undefined, 'options preferences');
     cmd('switch-x', 'Switch to X', 'swap', () => void switchTo('x', 'reddit', settings.rememberState, document.title), undefined, 'twitter platform orbit launcher');
+    cmd('switch-youtube', 'Switch to YouTube', 'swap', () => void switchTo('youtube', 'reddit', settings.rememberState, document.title), undefined, 'video platform orbit launcher');
     cmd('classic', 'Open in classic Reddit', 'external', classic, '⌥⇧O', 'original native');
     for (const l of settings.quickLinks) add({ id: `ql-${l.id}`, group: 'Quick access', label: l.label, icon: 'star', run: () => navigate(l.url) });
     const seen = new Set<string>();

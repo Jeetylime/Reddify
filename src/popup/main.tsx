@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
 import './popup.css';
 import { loadSettings, mergeSettings, onSettingsChanged, platformEnabled, resolveTheme, saveSettings, themeVars } from '@core/settings';
-import type { Layout, Settings, Theme, XPostStyle } from '@core/settings';
+import type { Layout, Settings, Theme, XPostStyle, YTGrid } from '@core/settings';
 import type { Msg, TabState } from '@core/messages';
 import { PLATFORMS, PLATFORM_ORDER, destination, loadSpots, platformOfUrl } from '@core/platforms';
 import type { PlatformId } from '@core/platforms';
@@ -48,14 +48,14 @@ function Popup() {
     <div className="root" data-theme={resolveTheme(s.theme)} style={themeVars(s) as React.CSSProperties}>
       <div className="head">
         <Logo size={30} />
-        <div><b>Orbit</b><small>{chrome.runtime.getManifest().version} · Reddit & X</small></div>
+        <div><b>Orbit</b><small>{chrome.runtime.getManifest().version} · Reddit · X · YouTube</small></div>
         <button className={`switch ${s.enabled ? 'on' : ''}`} role="switch" aria-checked={s.enabled} aria-label="Enable Orbit" onClick={() => set({ enabled: !s.enabled })} />
       </div>
       <div className="status"><span className={`dot ${tab.state?.active && on ? 'on' : ''}`} />{status}</div>
       <div className="plats">
         {PLATFORM_ORDER.map((id) => (
           <button key={id} className={`plat ${p === id ? 'cur' : ''}`} onClick={() => void open(id)} title={p === id ? `You’re on ${PLATFORMS[id].name}` : `Open ${PLATFORMS[id].name}`}>
-            <PlatformIcon id={id} size={26} /><span>{PLATFORMS[id].label}</span>
+            <PlatformIcon id={id} size={24} /><span>{PLATFORMS[id].name}</span>
             {p === id ? <span className="here">Here</span> : <Icon name="chev-right" size={14} />}
           </button>
         ))}
@@ -64,7 +64,11 @@ function Popup() {
         <div className="row"><span>Theme</span>
           <div className="seg">{([['dark', 'moon'], ['light', 'sun'], ['system', 'sidebar']] as [Theme, 'moon' | 'sun' | 'sidebar'][]).map(([t, ic]) => <button key={t} className={s.theme === t ? 'on' : ''} title={t} aria-label={`${t} theme`} onClick={() => set({ theme: t })}>{t === 'system' ? 'Auto' : <Icon name={ic} size={14} />}</button>)}</div>
         </div>
-        {p === 'x' ? (
+        {p === 'youtube' ? (
+          <div className="row"><span>Video grid</span>
+            <div className="seg">{([['comfortable', 'Comfy'], ['compact', 'Compact'], ['editorial', 'Editorial']] as [YTGrid, string][]).map(([v, l]) => <button key={v} className={s.youtube.grid === v ? 'on' : ''} onClick={() => set({ youtube: { ...s.youtube, grid: v } })}>{l}</button>)}</div>
+          </div>
+        ) : p === 'x' ? (
           <div className="row"><span>Posts</span>
             <div className="seg">{([['cards', 'Cards'], ['list', 'List']] as [XPostStyle, string][]).map(([v, l]) => <button key={v} className={s.x.postStyle === v ? 'on' : ''} onClick={() => set({ x: { ...s.x, postStyle: v } })}>{l}</button>)}</div>
           </div>

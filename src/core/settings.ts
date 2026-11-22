@@ -56,16 +56,64 @@ export const DEFAULT_X: XSettings = {
   threadFocus: true,
 };
 
+/* ---------- YouTube ---------- */
+
+export type YTGrid = 'comfortable' | 'compact' | 'editorial';
+export type YTThumb = 'small' | 'medium' | 'large';
+export type YTRecs = 'sidebar' | 'grid' | 'list';
+export type YTWatchWidth = 'standard' | 'wide' | 'immersive';
+export type YTComments = 'threaded' | 'compact';
+export type YTShorts = 'focused' | 'classic';
+export type YTSection = 'pinned' | 'main' | 'you' | 'subscriptions' | 'explore' | 'more';
+
+/** Preferences that only affect YouTube. */
+export interface YouTubeSettings {
+  grid: YTGrid;
+  thumbSize: YTThumb;
+  recommendations: YTRecs;
+  watchWidth: YTWatchWidth;
+  comments: YTComments;
+  shorts: YTShorts;
+  descriptions: boolean;
+  hideShortsShelves: boolean;
+  hideNewsShelves: boolean;
+  hideChips: boolean;
+  collapseComments: boolean;
+  /** Sidebar customisation: pinned item ids, hidden item ids, section order and collapsed sections. */
+  navPinned: string[];
+  navHidden: string[];
+  navOrder: YTSection[];
+  navCollapsed: YTSection[];
+}
+
+export const DEFAULT_YOUTUBE: YouTubeSettings = {
+  grid: 'comfortable',
+  thumbSize: 'medium',
+  recommendations: 'sidebar',
+  watchWidth: 'wide',
+  comments: 'threaded',
+  shorts: 'focused',
+  descriptions: true,
+  hideShortsShelves: false,
+  hideNewsShelves: false,
+  hideChips: false,
+  collapseComments: false,
+  navPinned: [],
+  navHidden: [],
+  navOrder: ['pinned', 'main', 'you', 'subscriptions', 'explore', 'more'],
+  navCollapsed: ['explore'],
+};
+
 export type FontChoice = 'system' | 'rounded' | 'serif';
 export type Motion = 'system' | 'full' | 'reduced';
-export interface PlatformToggles { reddit: boolean; x: boolean }
+export interface PlatformToggles { reddit: boolean; x: boolean; youtube: boolean }
 
 /**
  * Everything Orbit remembers. The storage shape is flat for backwards compatibility:
  * - Shared (every platform): enabled, platforms, theme, accent, font, fontSize, lineHeight, density, motion,
  *   sidebarMode, sidebarWidth, contentWidth, keyboard, rememberState, externalInNewTab.
  * - Reddit only: everything else at the top level (layout, filters, sidebar sections, …).
- * - X only: the `x` object.
+ * - X only: the `x` object. YouTube only: the `youtube` object.
  */
 export interface Settings {
   enabled: boolean;
@@ -103,11 +151,12 @@ export interface Settings {
   mutedKeywords: string[];
   hide: HideOptions;
   x: XSettings;
+  youtube: YouTubeSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
-  platforms: { reddit: true, x: true },
+  platforms: { reddit: true, x: true, youtube: true },
   theme: 'dark',
   accent: '#7c83ff',
   font: 'system',
@@ -141,6 +190,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mutedKeywords: [],
   hide: { voteScore: false, awards: false, flairs: false, subIcons: false, domain: false, layoutSwitcher: false, backToTop: false, rail: false },
   x: DEFAULT_X,
+  youtube: DEFAULT_YOUTUBE,
 };
 
 export const SECTION_LABELS: Record<SectionId, string> = {
@@ -167,6 +217,11 @@ export function mergeSettings(raw: Partial<Settings> | undefined | null): Settin
   const s = { ...DEFAULT_SETTINGS, ...(raw ?? {}) } as Settings;
   s.hide = { ...DEFAULT_SETTINGS.hide, ...(raw?.hide ?? {}) };
   s.x = { ...DEFAULT_X, ...(raw?.x ?? {}) };
+  s.youtube = { ...DEFAULT_YOUTUBE, ...(raw?.youtube ?? {}) };
+  const ytKnown = new Set(DEFAULT_YOUTUBE.navOrder);
+  const ytOrder = (Array.isArray(s.youtube.navOrder) ? s.youtube.navOrder : []).filter((x) => ytKnown.has(x));
+  for (const id of DEFAULT_YOUTUBE.navOrder) if (!ytOrder.includes(id)) ytOrder.push(id);
+  s.youtube.navOrder = ytOrder;
   s.platforms = { ...DEFAULT_SETTINGS.platforms, ...(raw?.platforms ?? {}) };
   const known = new Set(DEFAULT_SETTINGS.navOrder);
   const order = (Array.isArray(s.navOrder) ? s.navOrder : []).filter((x) => known.has(x));

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Orbit",
-  "version": "2.0.0",
-  "description": "One premium, keyboard-friendly client for Reddit and X: redesigned feeds and timelines, a shared design language and instant platform switching.",
+  "version": "3.0.0",
+  "description": "One premium, keyboard-friendly client for Reddit, X and YouTube: redesigned feeds, timelines and video, one design language and instant platform switching.",
   "minimum_chrome_version": "111",
   "icons": {
     "16": "icons/icon16.png",
@@ -23,7 +23,10 @@
     "*://mobile.x.com/*",
     "*://twitter.com/*",
     "*://www.twitter.com/*",
-    "*://mobile.twitter.com/*"
+    "*://mobile.twitter.com/*",
+    "*://youtube.com/*",
+    "*://www.youtube.com/*",
+    "*://m.youtube.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -66,6 +69,27 @@
       ],
       "css": [
         "x.css"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://youtube.com/*",
+        "*://www.youtube.com/*",
+        "*://m.youtube.com/*"
+      ],
+      "exclude_matches": [
+        "*://*/youtubei/*",
+        "*://*/api/*",
+        "*://*/embed/*",
+        "*://*/live_chat*",
+        "*://*/s/*"
+      ],
+      "js": [
+        "content-youtube.js"
+      ],
+      "css": [
+        "youtube.css"
       ],
       "run_at": "document_start"
     }

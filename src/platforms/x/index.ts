@@ -3,6 +3,7 @@ import type { Settings } from '@core/settings';
 import type { Msg, TabState } from '@core/messages';
 import { trackSpot } from '@core/platforms';
 import { hideLauncher, showLauncher } from '@core/launcher';
+import { NativeThemeSync } from '@core/pageSheet';
 import { openSwitcher } from '@core/Switcher';
 import { parseXRoute } from './routes';
 import { applyTheme, clearTheme, ensureAdopted, remapLegacy } from './theme';
@@ -54,27 +55,10 @@ function applySettingsClasses(s: Settings) {
 }
 
 /* X's current client styles dark/light variants off <html data-theme>; keep it in step with Orbit's theme. */
-let nativeTheme: string | null | undefined;
-let themeGuard: MutationObserver | null = null;
+const nativeTheme = new NativeThemeSync('data-theme', (t) => t);
 function syncNativeTheme(on: boolean) {
-  if (!on) {
-    themeGuard?.disconnect(); themeGuard = null;
-    if (nativeTheme !== undefined) { if (nativeTheme === null) html.removeAttribute('data-theme'); else html.setAttribute('data-theme', nativeTheme); nativeTheme = undefined; }
-    return;
-  }
-  if (!settings || !html.hasAttribute('data-theme')) return;
-  const want = resolveTheme(settings.theme);
-  if (nativeTheme === undefined) nativeTheme = html.getAttribute('data-theme');
-  if (html.getAttribute('data-theme') !== want) html.setAttribute('data-theme', want);
-  if (!themeGuard) {
-    themeGuard = new MutationObserver(() => {
-      if (!active || !settings) return;
-      const w = resolveTheme(settings.theme);
-      const cur = html.getAttribute('data-theme');
-      if (cur !== w) { nativeTheme = cur; html.setAttribute('data-theme', w); }
-    });
-    themeGuard.observe(html, { attributes: true, attributeFilter: ['data-theme'] });
-  }
+  if (!on) nativeTheme.restore();
+  else if (settings) nativeTheme.apply(resolveTheme(settings.theme), true);
 }
 
 /* ---------- activation ---------- */

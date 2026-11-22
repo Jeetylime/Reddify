@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Icon } from '@core/Icon';
 import type { IconName } from '@core/Icon';
-import { Kbd, Menu, MenuItem, useDismiss } from '@core/ui';
+import { Kbd, Menu, MenuItem } from '@core/ui';
+import { HelpSheet, Palette, ToastStack } from '@core/shell';
+import type { PaletteRow } from '@core/shell';
 import { PlatformSwitcher } from '@core/Switcher';
 import { reducedMotion, resolveTheme, themeVars } from '@core/settings';
 import type { Density, XMediaSize, XPostStyle } from '@core/settings';
@@ -10,7 +12,7 @@ import { X_SHORTCUTS } from '@core/shortcuts';
 import { routeTitle } from '../routes';
 import { searchX } from '../dom';
 import { applyFilter } from '../decorate';
-import { classic, compose, copyLink, go, openReader, openSettings, toReddit, toggleRail, toggleSidebar, toggleTheme } from '../actions';
+import { classic, compose, copyLink, go, openReader, openSettings, toPlatform, toggleRail, toggleSidebar, toggleTheme } from '../actions';
 import { setX, updateSettings, updateX, useX } from '../store';
 import { Lightbox, Reader } from './Viewers';
 
@@ -58,7 +60,7 @@ function Sidebar() {
     ['settings', 'Settings and privacy', '/settings'], ['sun', 'Display', '/i/display'], ['keyboard', 'X keyboard shortcuts', '/i/keyboard_shortcuts'],
   ];
   return (
-    <aside className="sidebar x-sidebar" aria-label="Orbit navigation">
+    <aside className="sidebar shell-sidebar" aria-label="Orbit navigation">
       <div className="sb-head">
         <PlatformSwitcher current="x" compact={compact} remember={settings.rememberState} onSettings={() => openSettings('x')} homeHref="/home" />
         {!compact && <button className="ibtn sb-collapse" style={{ marginLeft: 'auto' }} onClick={toggleSidebar} title="Collapse sidebar (\)" aria-label="Collapse sidebar"><Icon name="sidebar" size={17} /></button>}
@@ -83,9 +85,9 @@ function Sidebar() {
       </nav>
       <div className="sb-foot">
         {compact && <button className="ibtn" onClick={toggleSidebar} title="Expand sidebar (\)" aria-label="Expand sidebar"><Icon name="sidebar" size={17} /></button>}
-        <Menu label="Account" up align="left" buttonClass="x-account" button={account ? <>
+        <Menu label="Account" up align="left" buttonClass="shell-account" button={account ? <>
           {account.avatar ? <img className="avatar md round" src={account.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="avatar md round" aria-hidden="true">{account.handle[0]?.toUpperCase()}</span>}
-          <span className="x-acc-text"><b>{account.name}</b><small>@{account.handle}</small></span>
+          <span className="shell-acc-text"><b>{account.name}</b><small>@{account.handle}</small></span>
         </> : <Icon name="user" size={18} />}>
           {(close) => (<>
             {account && <MenuItem icon="user" label="Profile" onClick={() => { close(); go(`/${account.handle}`); }} />}
@@ -158,11 +160,11 @@ function ViewMenu() {
   return (
     <Menu label="View options" button={<Icon name="density" size={17} />}>
       {() => (
-        <div className="x-view">
+        <div className="shell-view">
           <div className="pop-head">Timeline</div>
-          <div className="x-view-row"><span>Posts</span>{seg<XPostStyle>(s.x.postStyle, [['cards', 'Cards'], ['list', 'List']], (v) => updateX({ postStyle: v }))}</div>
-          <div className="x-view-row"><span>Density</span>{seg<Density>(s.density, [['cozy', 'Cozy'], ['regular', 'Regular'], ['tight', 'Tight']], (v) => updateSettings({ density: v }))}</div>
-          <div className="x-view-row"><span>Media</span>{seg<XMediaSize>(s.x.mediaSize, [['compact', 'Compact'], ['balanced', 'Balanced'], ['full', 'Full']], (v) => updateX({ mediaSize: v }))}</div>
+          <div className="shell-view-row"><span>Posts</span>{seg<XPostStyle>(s.x.postStyle, [['cards', 'Cards'], ['list', 'List']], (v) => updateX({ postStyle: v }))}</div>
+          <div className="shell-view-row"><span>Density</span>{seg<Density>(s.density, [['cozy', 'Cozy'], ['regular', 'Regular'], ['tight', 'Tight']], (v) => updateSettings({ density: v }))}</div>
+          <div className="shell-view-row"><span>Media</span>{seg<XMediaSize>(s.x.mediaSize, [['compact', 'Compact'], ['balanced', 'Balanced'], ['full', 'Full']], (v) => updateX({ mediaSize: v }))}</div>
           <div className="pop-sep" />
           <MenuItem icon="sidebar" label="Right panel" checked={!s.x.hideRail} onClick={toggleRail} />
           <MenuItem icon="eye-off" label="Hide promoted posts" checked={s.x.hidePromoted} onClick={() => updateX({ hidePromoted: !s.x.hidePromoted })} />
@@ -181,7 +183,7 @@ function TopBar() {
   const dark = resolveTheme(settings.theme) === 'dark';
   const canBack = route.kind !== 'home' && history.length > 1;
   return (
-    <header className="topbar x-topbar">
+    <header className="topbar shell-topbar">
       <div className="tb-title">
         {canBack && <button className="ibtn" onClick={() => history.back()} title="Back" aria-label="Back"><Icon name="arrow-left" /></button>}
         <div className="t"><h1>{title}</h1>{sub && <small>{sub}</small>}</div>
@@ -204,26 +206,19 @@ function TopBar() {
 
 /* ---------------- Palette & help ---------------- */
 
-interface Row { id: string; group: string; label: string; icon: IconName; hint?: string; keywords?: string; run: () => void }
-
-function Palette() {
+function XPalette() {
   const settings = useX((s) => s.settings);
   const route = useX((s) => s.route);
   const nav = useNav();
-  const [q, setQ] = useState('');
-  const [hl, setHl] = useState(0);
-  const list = useRef<HTMLDivElement>(null);
-  const close = () => setX({ palette: false });
   const dark = resolveTheme(settings.theme) === 'dark';
-
   const rows = useMemo(() => {
-    const all: Row[] = [];
-    const run = (f: () => void) => () => { close(); f(); };
-    for (const n of nav) all.push({ id: `go-${n.key}`, group: 'Go to', label: n.label, icon: n.icon, run: run(() => go(n.path)) });
-    all.push({ id: 'go-settings', group: 'Go to', label: 'X settings', icon: 'settings', run: run(() => go('/settings')) });
-    const cmd = (id: string, label: string, icon: IconName, f: () => void, hint?: string, keywords = '') => all.push({ id, group: 'Commands', label, icon, hint, keywords, run: run(f) });
+    const all: PaletteRow[] = [];
+    for (const n of nav) all.push({ id: `go-${n.key}`, group: 'Go to', label: n.label, icon: n.icon, run: () => go(n.path) });
+    all.push({ id: 'go-settings', group: 'Go to', label: 'X settings', icon: 'settings', run: () => go('/settings') });
+    const cmd = (id: string, label: string, icon: IconName, run: () => void, hint?: string, keywords = '') => all.push({ id, group: 'Commands', label, icon, hint, keywords, run });
     cmd('compose', 'New post', 'feather', compose, 'N', 'tweet write compose');
-    cmd('reddit', 'Switch to Reddit', 'swap', toReddit, '⌥O', 'platform orbit launcher');
+    cmd('reddit', 'Switch to Reddit', 'swap', () => toPlatform('reddit'), undefined, 'platform orbit launcher');
+    cmd('youtube', 'Switch to YouTube', 'swap', () => toPlatform('youtube'), undefined, 'platform orbit launcher video');
     if (route.kind === 'status') { cmd('reader', 'Read the whole thread', 'book', openReader, '⇧R', 'reader unroll'); cmd('copy', 'Copy link to post', 'link', () => void copyLink()); }
     cmd('theme', `Switch to ${dark ? 'light' : 'dark'} theme`, dark ? 'sun' : 'moon', toggleTheme, undefined, 'appearance mode');
     cmd('sidebar', settings.sidebarMode === 'compact' ? 'Expand sidebar' : 'Compact sidebar', 'sidebar', toggleSidebar, '\\');
@@ -233,71 +228,10 @@ function Palette() {
     cmd('keys', 'Keyboard shortcuts', 'keyboard', () => setX({ help: true }), '?', 'help');
     cmd('settings', 'Orbit settings', 'settings', () => openSettings('x'), undefined, 'options preferences');
     cmd('classic', 'Classic X on this tab', 'external', classic, '⌥⇧O', 'original native');
-    const t = q.trim().toLowerCase();
-    const hits = t ? all.filter((r) => `${r.label} ${r.keywords ?? ''}`.toLowerCase().includes(t)) : all;
-    if (q.trim()) hits.push({ id: 'search', group: 'Search', label: `Search X for “${q.trim()}”`, icon: 'search', run: run(() => searchX(q.trim())) });
-    return hits;
-  }, [q, nav, settings, route.kind, dark]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => setHl(0), [q]);
-  useEffect(() => { list.current?.querySelector('.pal-row.hl')?.scrollIntoView({ block: 'nearest' }); }, [hl]);
-  const onKey = (e: React.KeyboardEvent) => {
-    e.stopPropagation();
-    const n = rows.length;
-    if (e.key === 'ArrowDown') { e.preventDefault(); setHl((h) => (h + 1) % n); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setHl((h) => (h - 1 + n) % n); }
-    else if (e.key === 'Enter') { e.preventDefault(); rows[hl]?.run(); }
-    else if (e.key === 'Escape') { e.preventDefault(); close(); }
-  };
-  return (
-    <>
-      <div className="scrim" onPointerDown={close} />
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
-        <div className="pal-in"><Icon name="search" size={18} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} placeholder="Go anywhere on X, run a command, search…" aria-label="Command palette" /><Kbd>esc</Kbd></div>
-        <div className="pal-list" ref={list} role="listbox">
-          {rows.map((r, i) => (
-            <div key={r.id}>
-              {(i === 0 || rows[i - 1].group !== r.group) && <div className="pal-group">{r.group}</div>}
-              <button className={`pal-row ${i === hl ? 'hl' : ''}`} role="option" aria-selected={i === hl} onMouseMove={() => i !== hl && setHl(i)} onClick={r.run}>
-                <Icon name={r.icon} size={17} /><span className="lbl">{r.label}</span>{r.hint && <span className="hint">{r.hint}</span>}<span className="enter"><Kbd>↵</Kbd></span>
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="pal-foot"><span><Kbd>↑</Kbd><Kbd>↓</Kbd>navigate</span><span><Kbd>↵</Kbd>open</span><span style={{ marginLeft: 'auto' }}>Orbit for X</span></div>
-      </div>
-    </>
-  );
-}
-
-function Help() {
-  const close = () => setX({ help: false });
-  const ref = useRef<HTMLDivElement>(null);
-  useDismiss(ref, close, true);
-  return (
-    <>
-      <div className="scrim" />
-      <div className="help" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" ref={ref}>
-        <div className="help-h"><h2>Keyboard shortcuts</h2><button className="ibtn" onClick={close} aria-label="Close"><Icon name="x" /></button></div>
-        <div className="help-grid">
-          {X_SHORTCUTS.map(([g, items]) => (
-            <div className="help-group" key={g}><h4>{g}</h4>
-              {items.map(([label, keys]) => <div className="help-row" key={label}><span>{label}</span><span className="keys">{keys.map((k, i) => <Kbd key={i}>{k}</Kbd>)}</span></div>)}
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
-function Toasts() {
-  const toasts = useX((s) => s.toasts);
-  return (
-    <div className="toasts" aria-live="polite">
-      {toasts.map((t) => <div key={t.id} className={`toast ${t.kind}`} role="status"><Icon name={t.kind === 'success' ? 'check' : t.kind === 'error' ? 'alert' : 'info'} size={16} /><span>{t.text}</span></div>)}
-    </div>
-  );
+    return all;
+  }, [nav, settings, route.kind, dark]);
+  return <Palette rows={rows} onClose={() => setX({ palette: false })} placeholder="Go anywhere on X, run a command, search…" footer="Orbit for X"
+    search={(q) => ({ id: 'search', group: 'Search', label: `Search X for “${q}”`, icon: 'search', run: () => searchX(q) })} />;
 }
 
 /* ---------------- Root ---------------- */
@@ -311,18 +245,19 @@ export function Chrome() {
   const reader = useX((s) => !!s.reader);
   const lightbox = useX((s) => !!s.lightbox);
   const narrow = useX((s) => s.narrow);
+  const toasts = useX((s) => s.toasts);
   const vars = useMemo(() => themeVars(settings), [settings]);
   const theme = resolveTheme(settings.theme);
-  const cls = ['root', 'x-root', reducedMotion(settings) && 'no-motion', settings.sidebarMode === 'compact' && 'sb-compact', overlay && 'x-behind', narrow && 'x-narrow'].filter(Boolean).join(' ');
+  const cls = ['root', 'shell-root', reducedMotion(settings) && 'no-motion', settings.sidebarMode === 'compact' && 'sb-compact', overlay && 'shell-behind', narrow && 'x-narrow'].filter(Boolean).join(' ');
   const chrome: ReactNode = session === 'in' ? <><Sidebar /><TopBar /></> : null;
   return (
     <div className={cls} data-theme={theme} style={vars as React.CSSProperties}>
       {chrome}
-      {palette && <Palette />}
-      {help && <Help />}
+      {palette && <XPalette />}
+      {help && <HelpSheet groups={X_SHORTCUTS} onClose={() => setX({ help: false })} />}
       {reader && <Reader />}
       {lightbox && <Lightbox />}
-      <Toasts />
+      <ToastStack toasts={toasts} />
     </div>
   );
 }

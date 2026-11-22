@@ -1,23 +1,26 @@
 /** The platforms Orbit runs on, how to recognise them, and where to send people when they switch. */
 
-export type PlatformId = 'reddit' | 'x';
+export type PlatformId = 'reddit' | 'x' | 'youtube';
 
 export interface PlatformInfo {
   id: PlatformId;
   name: string;
   /** Longer label for menus. */
   label: string;
+  /** One-line description shown in the switcher. */
+  tagline: string;
   home: string;
   /** Hosts this platform is served from (Orbit runs on all of them). */
   hosts: RegExp;
 }
 
 export const PLATFORMS: Record<PlatformId, PlatformInfo> = {
-  reddit: { id: 'reddit', name: 'Reddit', label: 'Reddit', home: 'https://www.reddit.com/', hosts: /^(www\.)?reddit\.com$/i },
-  x: { id: 'x', name: 'X', label: 'X / Twitter', home: 'https://x.com/home', hosts: /^(www\.|mobile\.)?(x|twitter)\.com$/i },
+  reddit: { id: 'reddit', name: 'Reddit', label: 'Reddit', tagline: 'Communities & discussions', home: 'https://www.reddit.com/', hosts: /^(www\.)?reddit\.com$/i },
+  x: { id: 'x', name: 'X', label: 'X / Twitter', tagline: 'Real-time conversations', home: 'https://x.com/home', hosts: /^(www\.|mobile\.)?(x|twitter)\.com$/i },
+  youtube: { id: 'youtube', name: 'YouTube', label: 'YouTube', tagline: 'Videos & creators', home: 'https://www.youtube.com/', hosts: /^(www\.|m\.)?youtube\.com$/i },
 };
 
-export const PLATFORM_ORDER: PlatformId[] = ['reddit', 'x'];
+export const PLATFORM_ORDER: PlatformId[] = ['reddit', 'x', 'youtube'];
 
 export function detectPlatform(host: string = location.hostname): PlatformId | null {
   for (const id of PLATFORM_ORDER) if (PLATFORMS[id].hosts.test(host)) return id;
@@ -47,7 +50,7 @@ export async function loadSpots(): Promise<Spots> {
 }
 
 /** Never remember transient or sensitive pages (log-in flows, composers, media viewers). */
-const TRANSIENT = /\/(login|logout|signup|i\/flow|i\/jf|i\/oauth2?|oauth|account\/|compose\/|settings\/password|message\/compose)|\/(photo|video)\/\d+\/?$/i;
+const TRANSIENT = /\/(login|logout|signup|i\/flow|i\/jf|i\/oauth2?|oauth|account\/|compose\/|settings\/password|message\/compose|signin|ServiceLogin)|\/(photo|video)\/\d+\/?$/i;
 
 export async function rememberSpot(id: PlatformId, url: string, title: string): Promise<void> {
   if (!hasChrome() || TRANSIENT.test(new URL(url).pathname)) return;
@@ -85,6 +88,6 @@ export async function switchTo(target: PlatformId, from: PlatformId | null, reme
 /** A short human label for a remembered spot ("r/design", "Bookmarks", …). */
 export function spotLabel(spot: Spot | undefined): string | undefined {
   if (!spot) return undefined;
-  const t = spot.title.replace(/\s*[·/|]\s*(Orbit|X)\s*$/i, '').replace(/^Orbit\s*·\s*/i, '').trim();
+  const t = spot.title.replace(/^\(\d+\)\s*/, '').replace(/\s*[·/|-]\s*(Orbit|X|YouTube)\s*$/i, '').replace(/^Orbit\s*·\s*/i, '').trim();
   return t || undefined;
 }

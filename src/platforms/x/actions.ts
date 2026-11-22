@@ -1,5 +1,6 @@
 import { resolveTheme } from '@core/settings';
 import { switchTo } from '@core/platforms';
+import type { PlatformId } from '@core/platforms';
 import { collectThread } from './decorate';
 import { navigateX, openComposer, permalinkOf, findMain } from './dom';
 import { getX, setX, toast, updateSettings, updateX } from './store';
@@ -12,7 +13,7 @@ export const toggleTheme = () => updateSettings({ theme: resolveTheme(getX().set
 export const toggleSidebar = () => updateSettings({ sidebarMode: getX().settings.sidebarMode === 'compact' ? 'expanded' : 'compact' });
 export const toggleRail = () => updateX({ hideRail: !getX().settings.x.hideRail });
 export const classic = () => window.dispatchEvent(new Event('orbit:classic'));
-export const toReddit = () => void switchTo('reddit', 'x', getX().settings.rememberState, document.title);
+export const toPlatform = (id: PlatformId) => void switchTo(id, 'x', getX().settings.rememberState, document.title);
 
 export function openSettings(section = '') {
   try { void chrome.runtime.sendMessage({ type: 'open-options', section }); }

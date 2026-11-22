@@ -47,6 +47,9 @@ export function PlatformSwitcher({ current, compact, remember, onSettings, homeH
     items.current[((i % n) + n) % n]?.focus();
   }
 
+  // Load remembered spots up front so the menu is complete the moment it opens.
+  useEffect(() => { void loadSpots().then(setSpots); }, []);
+
   useEffect(() => {
     const show = () => setOpen(true);
     window.addEventListener('orbit:switcher', show);
@@ -107,7 +110,7 @@ export function PlatformSwitcher({ current, compact, remember, onSettings, homeH
                 <PlatformIcon id={id} size={30} />
                 <span className="orb-text">
                   <b>{p.label}</b>
-                  <small>{busy === id ? 'Opening…' : active ? 'You’re here' : resume ? `Resume · ${resume}` : `Open ${p.name}`}</small>
+                  <small>{busy === id ? 'Opening…' : resume ? `Resume · ${resume}` : p.tagline}</small>
                 </span>
                 {active ? <span className="orb-dot" aria-hidden="true" /> : <kbd className="kbd">{i + 1}</kbd>}
               </button>

@@ -1,5 +1,5 @@
-import tokens from '@core/tokens.css';
-import { readableOn, resolveTheme, themeVars } from '@core/settings';
+import { resolveTheme } from '@core/settings';
+import { PageSheet, alphaRamp } from '@core/pageSheet';
 import type { Settings } from '@core/settings';
 
 /**
@@ -11,29 +11,13 @@ import type { Settings } from '@core/settings';
  *  4. offsets for X's sticky headers so they dock under Orbit's top bar.
  */
 
-const sheet = new CSSStyleSheet();
-let base = '';
-let legacy = '';
-let sticky = '';
-
-/** tokens.css is written for `.root` inside Shadow DOMs; rewrite it for the page and namespace every variable. */
-function pageTokens(): string {
-  return tokens
-    .replace(/\.root\[data-theme="(dark|light)"\]/g, 'html.orbit-x[data-orbit-theme="$1"]')
-    .replace(/\.root\s*\{/g, 'html.orbit-x {')
-    .replace(/--([a-z])/g, '--o-$1');
-}
-const TOKENS = pageTokens();
-
-function alphaRamp(prefix: string, rgb: string): string {
-  const steps = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95, 100];
-  return steps.map((n) => `${prefix}-${String(n).padStart(2, '0')}:rgba(${rgb},${n / 100})!important;`).join('');
-}
+const page = new PageSheet('html.orbit-x', 'html.orbit-x-chrome');
+const TOKENS = page.tokens();
 
 function build(s: Settings): string {
   const theme = resolveTheme(s.theme);
   const dark = theme === 'dark';
-  const vars = Object.entries(themeVars(s)).map(([k, v]) => `${k.replace(/^--/, '--o-')}:${v.replace(/var\(--/g, 'var(--o-')};`).join('');
+  const vars = PageSheet.vars(s);
   const colW = Math.max(560, Math.min(s.contentWidth, 860));
   const media = { compact: '300px', balanced: '520px', full: '100000px' }[s.x.mediaSize];
   const gap = { cozy: '14px', regular: '10px', tight: '6px' }[s.density];
@@ -50,7 +34,6 @@ html.orbit-x {
   --o-pad: ${pad};
   --o-like: ${dark ? '#ff5c8a' : '#e5245e'};
   --o-repost: ${dark ? '#34c38a' : '#11a36b'};
-  --o-accent-fg: ${readableOn(s.accent)};
   --o-thread: color-mix(in srgb, var(--o-accent) 55%, var(--o-border-2));
   color-scheme: ${theme};
   background: var(--o-bg) !important;
@@ -97,40 +80,22 @@ html.orbit-x, html.orbit-x [data-theme], html.orbit-x .light-theme, html.orbit-x
 `;
 }
 
-function apply() {
-  try { sheet.replaceSync(`${base}\n${legacy}\n${sticky}`); } catch (e) { console.warn('[Orbit] theme sheet failed', e); }
-  ensureAdopted();
-}
-
-/** (Re)attach our sheet; X never sets document.adoptedStyleSheets, but be defensive. */
-export function ensureAdopted() {
-  if (!document.adoptedStyleSheets.includes(sheet)) document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
-}
+export const ensureAdopted = () => page.adopt();
 
 export function applyTheme(s: Settings) {
-  base = build(s);
   document.documentElement.dataset.orbitTheme = resolveTheme(s.theme);
-  apply();
+  page.set('base', build(s));
 }
 
 export function clearTheme() {
-  base = legacy = sticky = '';
-  document.adoptedStyleSheets = document.adoptedStyleSheets.filter((x) => x !== sheet);
+  page.clear();
+  legacyRules.length = 0;
+  seen = new WeakMap();
   delete document.documentElement.dataset.orbitTheme;
 }
 
-/* ---------- sticky headers ---------- */
-
-const stickyTops = new Set<string>();
-/** Registers a sticky element's original `top` so a rule can push it below Orbit's top bar. */
-export function dockSticky(el: HTMLElement, top: number) {
-  const key = String(Math.round(top));
-  el.setAttribute('data-orbit-sticky', key);
-  if (stickyTops.has(key)) return;
-  stickyTops.add(key);
-  sticky = [...stickyTops].map((k) => `html.orbit-x-chrome [data-orbit-sticky="${k}"]{top:calc(${k}px + var(--o-top-h))!important}`).join('\n');
-  apply();
-}
+/** Docks a sticky header below Orbit's top bar. */
+export const dockSticky = (el: HTMLElement, top: number) => page.dockSticky(el, top);
 
 /* ---------- X's older client: atomic colour classes ---------- */
 
@@ -156,7 +121,7 @@ const PROPS: [string, 'bg' | 'text' | 'border'][] = [
   ['background-color', 'bg'], ['color', 'text'], ['border-color', 'border'], ['border-top-color', 'border'], ['border-bottom-color', 'border'],
   ['border-left-color', 'border'], ['border-right-color', 'border'], ['fill', 'text'],
 ];
-const seen = new WeakMap<CSSStyleSheet, number>();
+let seen = new WeakMap<CSSStyleSheet, number>();
 const legacyRules: string[] = [];
 
 function slotFor(value: string, kind: 'bg' | 'text' | 'border'): Slot | undefined {
@@ -193,6 +158,5 @@ export function remapLegacy(): void {
     if (out.length) legacyRules.push(`html.orbit-x ${r.selectorText}{${out.join(';')}}`);
   }
   seen.set(sh, rules.length);
-  legacy = legacyRules.join('\n');
-  apply();
+  page.set('legacy', legacyRules.join('\n'));
 }

@@ -82,20 +82,20 @@ await test('activates on x.com: Orbit chrome replaces X navigation', async () =>
   await waitPosts();
   await page.waitForFunction(() => document.documentElement.classList.contains('orbit-x-chrome'), null, { timeout: 8000 });
   assert(await htmlHas('orbit-x'), 'skin class missing');
-  await chrome('.x-sidebar').waitFor({ timeout: 5000 });
+  await chrome('.shell-sidebar').waitFor({ timeout: 5000 });
   const nav = await page.evaluate(() => { const n = document.querySelector('[data-orbit-native-nav]'); return n ? getComputedStyle(n).display : 'missing'; });
   assert(nav === 'none', `native nav should be hidden, got ${nav}`);
   for (const label of ['Home', 'Explore', 'Notifications', 'Messages', 'Bookmarks', 'Lists', 'Communities', 'Profile', 'More']) {
-    assert(await chrome(`.x-sidebar :is(a, button):has-text("${label}")`).count() > 0, `sidebar missing ${label}`);
+    assert(await chrome(`.shell-sidebar :is(a, button):has-text("${label}")`).count() > 0, `sidebar missing ${label}`);
   }
-  assert(await chrome('.x-sidebar .orb-trigger').count() === 1, 'Orbit logo / switcher missing');
+  assert(await chrome('.shell-sidebar .orb-trigger').count() === 1, 'Orbit logo / switcher missing');
   const bg = await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
   assert(bg === 'rgb(18, 19, 22)', `page background should be Orbit's (${bg})`);
   const pad = await page.evaluate(() => parseFloat(getComputedStyle(document.body).paddingLeft));
   assert(pad === 244, `content should clear the sidebar (padding-left ${pad})`);
-  assert(await chrome('.x-sidebar [data-nav="home"].active').count() === 1, 'Home not marked active');
-  assert(await chrome('.x-sidebar [data-nav="notifications"] .sb-count').innerText() === '3', 'unread badge not mirrored');
-  assert(await chrome('.x-acc-text').innerText().then((t) => t.includes('@orbit_tester')), 'account not shown');
+  assert(await chrome('.shell-sidebar [data-nav="home"].active').count() === 1, 'Home not marked active');
+  assert(await chrome('.shell-sidebar [data-nav="notifications"] .sb-count').innerText() === '3', 'unread badge not mirrored');
+  assert(await chrome('.shell-acc-text').innerText().then((t) => t.includes('@orbit_tester')), 'account not shown');
   await settle(500);
   await shot('x-01-home');
 });
@@ -181,10 +181,10 @@ await test('Home feed tabs are mirrored into Orbit’s top bar and drive X’s o
 await test('Orbit navigation drives X’s router (no page reloads) across page types', async () => {
   let b0 = await boot();
   for (const [key, path, title] of [['explore', '/explore', 'Explore'], ['notifications', '/notifications', 'Notifications'], ['messages', '/i/chat', 'Messages'], ['bookmarks', '/i/bookmarks', 'Bookmarks'], ['lists', '/orbit_tester/lists', 'Lists'], ['communities', '/orbit_tester/communities', 'Communities'], ['profile', '/orbit_tester', 'Orbit Tester'], ['home', '/home', 'Home']]) {
-    await chrome(`.x-sidebar [data-nav="${key}"]`).click({ timeout: 5000 }).catch(async (e) => { throw new Error(`clicking ${key}: ${e.message.split('\n').slice(0, 6).join(' | ')}`); });
+    await chrome(`.shell-sidebar [data-nav="${key}"]`).click({ timeout: 5000 }).catch(async (e) => { throw new Error(`clicking ${key}: ${e.message.split('\n').slice(0, 6).join(' | ')}`); });
     await page.waitForFunction((p) => location.pathname === p, path, { timeout: 5000 });
-    await page.waitForFunction((t) => document.querySelector('#orbit-x-chrome').shadowRoot.querySelector('.x-topbar h1')?.textContent === t, title, { timeout: 5000 });
-    assert(await chrome(`.x-sidebar [data-nav="${key}"].active`).count() === 1, `${key} not active`);
+    await page.waitForFunction((t) => document.querySelector('#orbit-x-chrome').shadowRoot.querySelector('.shell-topbar h1')?.textContent === t, title, { timeout: 5000 });
+    assert(await chrome(`.shell-sidebar [data-nav="${key}"].active`).count() === 1, `${key} not active`);
     // X renders no link for Lists in its nav, so Orbit falls back to a normal page load there; everything else is SPA.
     if (key === 'lists') { await waitPosts(0); b0 = await boot(); } else assert(await boot() === b0, `navigating to ${key} reloaded the page`);
     if (key === 'notifications') { await settle(300); await shot('x-03-notifications'); }
@@ -205,15 +205,15 @@ await test('Orbit navigation drives X’s router (no page reloads) across page t
 });
 
 await test('Orbit search box searches X', async () => {
-  const input = chrome('.x-topbar .tb-search input');
+  const input = chrome('.shell-topbar .tb-search input');
   await input.fill('orbit design');
   await input.press('Enter');
   await page.waitForFunction(() => location.pathname === '/search' && new URLSearchParams(location.search).get('q') === 'orbit design', null, { timeout: 5000 });
-  assert(await chrome('.x-topbar h1').innerText() === '“orbit design”', 'search title not shown');
+  assert(await chrome('.shell-topbar h1').innerText() === '“orbit design”', 'search title not shown');
 });
 
 await test('post page: focal post, author thread, connected replies, thread reader', async () => {
-  await chrome('.x-sidebar [data-nav="home"]').click();
+  await chrome('.shell-sidebar [data-nav="home"]').click();
   await waitPosts();
   const b0 = await boot();
   const link = posts().filter({ hasNot: page.locator('[data-orbit-promoted]') }).first().locator('a[href*="/status/"]:has(time)');
@@ -229,7 +229,7 @@ await test('post page: focal post, author thread, connected replies, thread read
   assert(focalSize > 16, `focal post should read larger (${focalSize})`);
   await settle(300);
   await shot('x-06-thread');
-  await chrome('.x-topbar button:has-text("Read thread")').click();
+  await chrome('.shell-topbar button:has-text("Read thread")').click();
   await chrome('.x-reader').waitFor({ timeout: 3000 });
   const n = await chrome('.x-reader .xr-post').count();
   assert(n >= 2, `reader should show the author's thread (${n})`);
@@ -243,7 +243,7 @@ await test('post page: focal post, author thread, connected replies, thread read
 });
 
 await test('photos open in Orbit’s media viewer (keyboard navigable); X’s viewer still available', async () => {
-  await chrome('.x-sidebar [data-nav="home"]').click();
+  await chrome('.shell-sidebar [data-nav="home"]').click();
   await waitPosts();
   const multi = page.locator('main [data-orbit-post]').filter({ has: page.locator('a[href*="/photo/2"]') }).first();
   await multi.scrollIntoViewIfNeeded();
@@ -275,10 +275,10 @@ await test('X modals (composer) sit above Orbit’s chrome and give it back on c
 });
 
 await test('bookmarks: filter loaded bookmarks by text', async () => {
-  await chrome('.x-sidebar [data-nav="bookmarks"]').click();
+  await chrome('.shell-sidebar [data-nav="bookmarks"]').click();
   await waitPosts(4);
   const total = await page.locator('main [data-orbit-cell]:visible').count();
-  const filter = chrome('.x-topbar .x-filter input');
+  const filter = chrome('.shell-topbar .x-filter input');
   const word = (await posts().first().locator('div[lang]').innerText()).split(/\s+/).find((w) => w.length > 5);
   await filter.fill('zzqxnotfound');
   await settle(200);
@@ -291,7 +291,7 @@ await test('bookmarks: filter loaded bookmarks by text', async () => {
 });
 
 await test('infinite scroll: new posts are decorated as they load', async () => {
-  await chrome('.x-sidebar [data-nav="home"]').click();
+  await chrome('.shell-sidebar [data-nav="home"]').click();
   await waitPosts();
   const before = await posts().count();
   for (let i = 0; i < 4; i++) { await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await settle(400); }
@@ -302,11 +302,11 @@ await test('infinite scroll: new posts are decorated as they load', async () => 
 });
 
 await test('view options: list style, compact media, density (X-only vs shared)', async () => {
-  await chrome('.x-topbar button[aria-label="View options"]').click();
-  await chrome('.x-view button:has-text("List")').click();
+  await chrome('.shell-topbar button[aria-label="View options"]').click();
+  await chrome('.shell-view button:has-text("List")').click();
   await page.waitForFunction(() => document.documentElement.classList.contains('orbit-x-list'));
-  await chrome('.x-view button:has-text("Compact")').click();
-  await chrome('.x-view button:has-text("Tight")').click();
+  await chrome('.shell-view button:has-text("Compact")').click();
+  await chrome('.shell-view button:has-text("Tight")').click();
   await page.keyboard.press('Escape');
   await settle(500);
   await shot('x-10-list-compact');
@@ -337,12 +337,12 @@ await test('command palette (Ctrl+K) navigates and runs commands', async () => {
 await test('compact sidebar (\\) and theme toggle are shared settings', async () => {
   await page.keyboard.press('\\');
   await page.waitForFunction(() => parseFloat(getComputedStyle(document.body).paddingLeft) === 64, null, { timeout: 3000 });
-  assert(!(await chrome('.x-sidebar .orb-word').isVisible()), 'compact sidebar should hide the wordmark');
+  assert(!(await chrome('.shell-sidebar .orb-word').isVisible()), 'compact sidebar should hide the wordmark');
   await settle(300);
   await shot('x-11-compact-sidebar');
   await page.keyboard.press('\\');
   await page.waitForFunction(() => parseFloat(getComputedStyle(document.body).paddingLeft) === 244);
-  await chrome('.x-topbar button[aria-label="Toggle theme"]').click();
+  await chrome('.shell-topbar button[aria-label="Toggle theme"]').click();
   await page.waitForFunction(() => document.documentElement.dataset.orbitTheme === 'light');
   const bg = await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
   assert(bg === 'rgb(241, 242, 245)', `light background ${bg}`);
@@ -350,12 +350,12 @@ await test('compact sidebar (\\) and theme toggle are shared settings', async ()
   await settle(500);
   await shot('x-12-light');
   assert((await getSettings()).theme === 'light', 'theme not shared');
-  await chrome('.x-topbar button[aria-label="Toggle theme"]').click();
+  await chrome('.shell-topbar button[aria-label="Toggle theme"]').click();
   await page.waitForFunction(() => document.documentElement.dataset.orbitTheme === 'dark');
 });
 
 await test('platform switcher: menu, keyboard access, current platform marked', async () => {
-  const trigger = chrome('.x-sidebar .orb-trigger');
+  const trigger = chrome('.shell-sidebar .orb-trigger');
   await trigger.click();
   const menu = chrome('.orb-menu');
   await menu.waitFor({ timeout: 2000 });
@@ -376,10 +376,10 @@ await test('platform switcher: menu, keyboard access, current platform marked', 
 });
 
 await test('switching X → Reddit → X in the same tab resumes where you were', async () => {
-  await chrome('.x-sidebar [data-nav="bookmarks"]').click();
+  await chrome('.shell-sidebar [data-nav="bookmarks"]').click();
   await page.waitForFunction(() => location.pathname === '/i/bookmarks');
   await settle(900); // let Orbit remember this spot
-  await chrome('.x-sidebar .orb-trigger').click();
+  await chrome('.shell-sidebar .orb-trigger').click();
   await chrome('.orb-menu [data-platform="reddit"]').click();
   await page.waitForURL(/reddit\.com/, { timeout: 8000 });
   await page.locator('#orbit-app [data-nav="post"]').first().waitFor({ timeout: 15000 });
@@ -431,7 +431,7 @@ await test('signed-out X keeps its own navigation (skin only, no Orbit chrome)',
   await settle(600);
   assert(await htmlHas('orbit-x'), 'skin should still apply');
   assert(!(await htmlHas('orbit-x-chrome')), 'Orbit chrome should not take over a signed-out page');
-  assert(await chrome('.x-sidebar').count() === 0, 'sidebar rendered while signed out');
+  assert(await chrome('.shell-sidebar').count() === 0, 'sidebar rendered while signed out');
   await page.evaluate(() => sessionStorage.clear());
   await page.goto(`${X}/home`);
   await waitPosts();
@@ -452,8 +452,8 @@ await test('narrow (mobile-width) X: X’s bottom bar navigates, Orbit keeps the
   await page.setViewportSize({ width: 600, height: 900 });
   await page.waitForFunction(() => document.documentElement.classList.contains('orbit-x-narrow'), null, { timeout: 3000 });
   assert(await page.evaluate(() => parseFloat(getComputedStyle(document.body).paddingLeft)) === 0, 'no sidebar gutter on narrow screens');
-  assert(!(await chrome('.x-sidebar').isVisible()), 'sidebar should hide on narrow screens');
-  assert(await chrome('.x-topbar').isVisible(), 'top bar should stay');
+  assert(!(await chrome('.shell-sidebar').isVisible()), 'sidebar should hide on narrow screens');
+  assert(await chrome('.shell-topbar').isVisible(), 'top bar should stay');
   await settle(300);
   await shot('x-14-narrow');
   await page.setViewportSize({ width: 1440, height: 900 });

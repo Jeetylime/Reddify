@@ -1,0 +1,33 @@
+/* Orbit overlay shell (shared by platforms where Orbit lays its chrome over the live site: X, YouTube).
+   The site stays underneath; this layer draws the sidebar, top bar and overlays and lets other clicks fall through. */
+.shell-root { position: fixed; inset: 0; pointer-events: none; font-size: 13.5px; line-height: 1.4; color: var(--text); }
+.shell-root > * { pointer-events: auto; }
+.shell-root > .toasts { pointer-events: none; }
+.shell-root.shell-behind > .shell-sidebar, .shell-root.shell-behind > .shell-topbar { pointer-events: none; filter: saturate(.6) brightness(.82); transition: filter var(--t) var(--ease); }
+
+/* ---------- sidebar ---------- */
+.shell-sidebar { position: absolute; left: 0; top: 0; bottom: 0; width: var(--sidebar-w); transition: width var(--t) var(--ease); }
+.shell-sidebar .pop-wrap { display: flex; }
+.shell-sidebar .pop { min-width: 236px; }
+.sb-item.sb-more { color: var(--text-2); }
+.shell-sidebar .sb-item { height: 38px; font-size: 14px; font-weight: 560; gap: 12px; }
+.shell-sidebar .sb-section + .sb-section { margin-top: 14px; }
+.shell-account { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; padding: 4px 8px 4px 4px; border-radius: 10px; text-align: left; }
+.shell-account:hover { background: var(--hover); }
+.shell-acc-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.shell-acc-text b { font-size: 13px; font-weight: 640; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 128px; }
+.shell-acc-text small { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 128px; }
+.shell-sidebar .avatar.md { display: grid; place-items: center; background: var(--surface-3); font-weight: 700; color: var(--text-2); }
+.root.sb-compact .shell-acc-text { display: none; }
+.root.sb-compact .x-post-btn { width: 40px; margin-left: auto; margin-right: auto; }
+.root.sb-compact .x-post-btn .sb-text { display: none; }
+.root.sb-compact .shell-account { padding: 4px; }
+.shell-sidebar .sb-foot { gap: 4px; }
+
+/* ---------- top bar ---------- */
+.shell-topbar { position: absolute; top: 0; right: 0; left: var(--sidebar-w); height: 56px; transition: left var(--t) var(--ease); }
+.shell-topbar .tb-title { flex: 0 1 220px; }
+.shell-view { width: 300px; padding: 2px 2px 4px; }
+.shell-view-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 8px; font-size: 13px; color: var(--text-2); font-weight: 540; }
+.shell-view-row .seg button { height: 24px; font-size: 12px; padding: 0 8px; }
+.shell-root .sb-item .avatar { width: 22px; height: 22px; }

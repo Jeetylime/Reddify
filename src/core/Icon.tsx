@@ -79,6 +79,15 @@ const P = {
   density: 'M4 5h16M4 9.5h16M4 14h16M4 18.5h16',
   logout: 'M14.5 4.5h4a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-4M10 16.5 14.5 12 10 7.5M14.5 12H3.5',
   sparkles: 'M10 4l1.5 4.5L16 10l-4.5 1.5L10 16l-1.5-4.5L4 10l4.5-1.5zM17.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z',
+  shorts: 'M9 3.5h6a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-11a3 3 0 0 1 3-3zM10.5 9.5v5l4-2.5z',
+  subs: 'M5 8.5h14a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1zM6.5 5.5h11M8.5 2.5h7M10.5 11.5v5l4-2.5z',
+  video: 'M4 6.5h11a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM16 10.5l5-3v9l-5-3',
+  thumb: 'M7.5 10.5v9H4.5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1zM7.5 10.5l3.5-7a2 2 0 0 1 2 2V9h5.2a1.8 1.8 0 0 1 1.8 2.1l-1.2 6.8a2 2 0 0 1-2 1.6H7.5',
+  library: 'M4.5 4v16M8.5 4v16M12.5 5l5.5 14.5M15.5 4.5l1.5.5',
+  music: 'M9 18V5.5l10-2V16M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z',
+  gamepad: 'M7 8.5h10a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.4 1.8L14.5 14.5h-5l-1.1 1.3A3 3 0 0 1 3 14v-1.5a4 4 0 0 1 4-4zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01',
+  theater: 'M3.5 6.5h17v11h-17zM7 10l-2 2 2 2M17 10l2 2-2 2',
+  help: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM9.6 9.5a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6M12 17h.01',
 } as const;
 
 const SOLID = new Set(['up', 'down', 'play', 'bookmark', 'pin', 'star', 'heart']);
@@ -117,7 +126,16 @@ export function Logo({ size = 24, title }: { size?: number; title?: string }) {
 }
 
 /** Small, recognisable platform glyphs for the switcher and settings. */
-export function PlatformIcon({ id, size = 28 }: { id: 'reddit' | 'x'; size?: number }) {
+export function PlatformIcon({ id, size = 28 }: { id: 'reddit' | 'x' | 'youtube'; size?: number }) {
+  if (id === 'youtube') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" style={{ flex: 'none' }}>
+        <rect width="32" height="32" rx="9" fill="#ff0033" />
+        <rect x="5.5" y="9" width="21" height="14" rx="4.5" fill="#fff" />
+        <path d="M14 12.6v6.8l5.8-3.4z" fill="#ff0033" />
+      </svg>
+    );
+  }
   if (id === 'reddit') {
     return (
       <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" style={{ flex: 'none' }}>

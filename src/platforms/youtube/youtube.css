@@ -1,0 +1,207 @@
+/*
+ * Orbit skin for YouTube — declared in the manifest (CSP-exempt, present from document_start).
+ * Every rule is gated by classes Orbit's content script sets on <html>:
+ *   .orbit-yt            the skin is on (colours via re-pointed YouTube tokens, typography, cards…)
+ *   .orbit-yt-chrome     Orbit's sidebar + top bar replace YouTube's guide and masthead (desktop site)
+ *   .orbit-yt-grid-*, .orbit-yt-recs-*, .orbit-yt-comments-*, .orbit-yt-shorts-*, .orbit-yt-hide-*   preferences
+ *   [data-orbit-route]   current page kind
+ * Nothing inside the video player (#movie_player / .ytp-*) is restyled: playback controls stay YouTube's.
+ * Ads are never hidden or altered beyond inheriting the card style.
+ */
+
+/* ============ base ============ */
+html.orbit-yt, html.orbit-yt body { background: var(--o-bg, #121316) !important; }
+html.orbit-yt ytd-app, html.orbit-yt ytm-app { background: transparent !important; }
+html.orbit-yt :is(ytd-app, ytm-app) { font-family: var(--o-font, system-ui) !important; }
+html.orbit-yt :is(ytd-app, ytm-app) :is(yt-formatted-string, #video-title, .yt-core-attributed-string, h1, h2, h3, span, a, button, input, tp-yt-paper-item):not(.ytp-chrome-bottom *):not(#movie_player *) { font-family: var(--o-font, system-ui) !important; }
+html.orbit-yt ::selection { background: color-mix(in srgb, var(--o-accent, #7c83ff) 30%, transparent); }
+html.orbit-yt #orbit-yt-chrome { position: fixed !important; inset: 0 !important; z-index: 2147482000 !important; pointer-events: none !important; }
+html.orbit-yt.orbit-yt-overlay #orbit-yt-chrome { z-index: -1 !important; }
+html.orbit-yt :is(#home-page-skeleton, #watch-page-skeleton, #guide-skeleton) { display: none !important; }
+
+/* ============ layout: Orbit replaces the guide and masthead ============ */
+html.orbit-yt-chrome:not(.orbit-yt-fullscreen) body { padding-left: var(--o-sidebar-w, 244px) !important; box-sizing: border-box !important; }
+html.orbit-yt-chrome.orbit-yt-narrow body { padding-left: 0 !important; }
+/* the masthead stays in place (its menus anchor to it) but is invisible: Orbit's top bar sits on top */
+html.orbit-yt-chrome #masthead-container { opacity: 0 !important; pointer-events: none !important; }
+html.orbit-yt-chrome:not(.orbit-yt-fullscreen) :is(tp-yt-app-drawer#guide, ytd-mini-guide-renderer) { display: none !important; }
+html.orbit-yt-chrome:not(.orbit-yt-fullscreen) ytd-page-manager { margin-left: 0 !important; margin-top: var(--o-top-h, 56px) !important; }
+html.orbit-yt-chrome ytd-app { --ytd-masthead-height: var(--o-top-h, 56px); --app-drawer-width: 0px; --ytd-persistent-guide-width: 0px; --ytd-mini-guide-width: 0px; }
+/* the category bar is mirrored into Orbit's top bar */
+html.orbit-yt-chrome ytd-browse ytd-rich-grid-renderer > #header:has(ytd-feed-filter-chip-bar-renderer) { display: none !important; }
+html.orbit-yt-chrome ytd-feed-filter-chip-bar-renderer #chips-wrapper { position: static !important; }
+html.orbit-yt-chrome.orbit-yt-fullscreen #orbit-yt-chrome { display: none !important; }
+
+/* ============ video cards (home, subscriptions, channels, related, search) ============ */
+html.orbit-yt :is(yt-thumbnail-view-model, ytd-thumbnail, yt-collection-thumbnail-view-model) { border-radius: var(--o-yt-radius, 14px) !important; overflow: hidden; }
+html.orbit-yt :is(yt-thumbnail-view-model, ytd-thumbnail) img { border-radius: 0 !important; transition: transform .35s var(--o-ease, ease), filter .25s ease; }
+html.orbit-yt :is(.yt-thumbnail-view-model__image, ytd-thumbnail #thumbnail) { border-radius: var(--o-yt-radius, 14px) !important; background: var(--o-media-bg, #0d0e10) !important; aspect-ratio: 16 / 9; }
+html.orbit-yt :is(yt-lockup-view-model, ytd-rich-grid-media, ytd-video-renderer, ytd-compact-video-renderer, ytd-playlist-video-renderer):hover :is(yt-thumbnail-view-model, ytd-thumbnail) img { transform: scale(1.03); filter: brightness(1.05); }
+html.orbit-yt badge-shape:is(.badge-shape-wiz--thumbnail-default, [class*="thumbnail"]), html.orbit-yt ytd-thumbnail-overlay-time-status-renderer #time-status {
+  background: rgba(10, 11, 14, .78) !important; color: #fff !important; border-radius: 6px !important; font-weight: 650 !important; font-size: 11.5px !important;
+  letter-spacing: .01em; backdrop-filter: blur(6px); font-variant-numeric: tabular-nums;
+}
+html.orbit-yt :is(.yt-lockup-metadata-view-model__title, #video-title) { color: var(--o-text) !important; font-weight: 640 !important; letter-spacing: -0.012em !important; line-height: 1.32 !important; }
+html.orbit-yt :is(.yt-lockup-metadata-view-model__title, #video-title):not(:is(ytd-search, ytd-watch-flexy) *) { font-size: 14.5px !important; }
+html.orbit-yt :is(.yt-content-metadata-view-model__metadata-text, .yt-content-metadata-view-model__delimiter, #metadata-line span, ytd-channel-name #text, ytd-channel-name a) { color: var(--o-text-2) !important; font-size: 12.5px !important; }
+html.orbit-yt .yt-content-metadata-view-model__metadata-text a:hover { color: var(--o-text) !important; }
+html.orbit-yt :is(.yt-lockup-metadata-view-model__avatar, #avatar-link) img { border-radius: 50% !important; }
+html.orbit-yt :is(yt-thumbnail-overlay-progress-bar-view-model, ytd-thumbnail-overlay-resume-playback-renderer) [class*="progress"], html.orbit-yt ytd-thumbnail-overlay-resume-playback-renderer #progress { background: var(--o-accent) !important; }
+html.orbit-yt :is(.yt-lockup-metadata-view-model__menu-button, #menu) button { border-radius: 50% !important; }
+
+/* grid: Orbit computes the column count (see theme.ts); cards get a soft hover surface */
+html.orbit-yt-chrome ytd-rich-grid-renderer { padding: 4px 8px 0; }
+html.orbit-yt-chrome ytd-rich-grid-renderer > #contents { margin: 0 auto !important; padding-top: 16px; max-width: 2400px; }
+html.orbit-yt-chrome ytd-rich-item-renderer { margin-bottom: calc(var(--o-yt-gap, 16px) * 1.6) !important; }
+html.orbit-yt-chrome ytd-rich-item-renderer > #content { position: relative; border-radius: calc(var(--o-yt-radius, 14px) + 6px); transition: background-color var(--o-t, .18s) ease; }
+html.orbit-yt-chrome ytd-rich-item-renderer > #content::before { content: ""; position: absolute; inset: -6px -6px -8px; border-radius: calc(var(--o-yt-radius, 14px) + 6px); background: var(--o-surface); border: 1px solid var(--o-border); opacity: 0; transition: opacity var(--o-t, .18s) ease; pointer-events: none; z-index: -1; }
+html.orbit-yt-chrome ytd-rich-item-renderer:hover > #content::before { opacity: 1; }
+html.orbit-yt-chrome ytd-rich-item-renderer > #content { isolation: isolate; }
+
+/* compact: denser cards — no avatars, two-line titles, smaller meta */
+html.orbit-yt-grid-compact :is(ytd-rich-grid-renderer) .yt-lockup-metadata-view-model__avatar, html.orbit-yt-grid-compact ytd-rich-grid-media #avatar-link { display: none !important; }
+html.orbit-yt-grid-compact ytd-rich-grid-renderer :is(.yt-lockup-metadata-view-model__title, #video-title) { font-size: 13px !important; }
+html.orbit-yt-grid-compact ytd-rich-grid-renderer .yt-content-metadata-view-model__metadata-text { font-size: 11.5px !important; }
+html.orbit-yt-grid-compact ytd-rich-item-renderer { margin-bottom: var(--o-yt-gap, 16px) !important; }
+
+/* editorial: the lead video is a feature — twice as wide, larger title */
+html.orbit-yt-grid-editorial ytd-browse[page-subtype="home"] ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer:nth-child(1 of ytd-rich-item-renderer:has(yt-lockup-view-model, ytd-rich-grid-media)) {
+  width: calc(200% / var(--o-yt-cols) - var(--o-yt-gap)) !important;
+}
+html.orbit-yt-grid-editorial ytd-browse[page-subtype="home"] ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer:nth-child(1 of ytd-rich-item-renderer:has(yt-lockup-view-model, ytd-rich-grid-media)) :is(.yt-lockup-metadata-view-model__title, #video-title) {
+  font-size: 21px !important; font-weight: 720 !important; letter-spacing: -0.024em !important;
+}
+html.orbit-yt-grid-editorial ytd-browse[page-subtype="home"] ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer:nth-child(1 of ytd-rich-item-renderer:has(yt-lockup-view-model, ytd-rich-grid-media)) { --orbit-hero: 1; }
+html.orbit-yt-grid-editorial ytd-rich-section-renderer :is(#title, h2) { font-size: 20px !important; font-weight: 720 !important; letter-spacing: -0.02em; }
+
+/* shelves */
+html.orbit-yt ytd-rich-section-renderer { margin: 8px 0 28px !important; }
+html.orbit-yt ytd-rich-shelf-renderer #title-container #title, html.orbit-yt ytd-rich-shelf-renderer h2 { color: var(--o-text) !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+html.orbit-yt ytm-shorts-lockup-view-model :is(img, [class*="thumbnail"]) { border-radius: var(--o-yt-radius, 14px) !important; }
+html.orbit-yt-hide-shorts-shelves :is(ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts], ytm-shorts-lockup-view-model), ytd-reel-shelf-renderer, grid-shelf-view-model:has(ytm-shorts-lockup-view-model)) { display: none !important; }
+html.orbit-yt-hide-news-shelves ytd-rich-section-renderer:has(ytd-rich-shelf-renderer):not(:has(ytd-rich-shelf-renderer[is-shorts], ytm-shorts-lockup-view-model)) { display: none !important; }
+
+/* chips that stay native (search, related, channels) */
+html.orbit-yt :is(yt-chip-cloud-chip-renderer) :is(.ytChipShapeChip, #chip-container) {
+  background: var(--o-surface-2) !important; color: var(--o-text-2) !important; border: 1px solid var(--o-border) !important; border-radius: 999px !important;
+  font-weight: 600 !important; font-size: 12.5px !important; height: 30px !important; transition: background-color var(--o-t-fast, .1s);
+}
+html.orbit-yt yt-chip-cloud-chip-renderer:hover :is(.ytChipShapeChip, #chip-container) { background: var(--o-active) !important; color: var(--o-text) !important; }
+html.orbit-yt yt-chip-cloud-chip-renderer:is([selected], :has(.ytChipShapeActive)) :is(.ytChipShapeChip, #chip-container) { background: var(--o-accent-soft) !important; color: var(--o-text) !important; border-color: var(--o-accent-line) !important; }
+
+/* buttons: YouTube's pill buttons take Orbit's surfaces; primary actions take the accent */
+html.orbit-yt :is(.yt-spec-button-shape-next--tonal, .ytSpecButtonShapeNextTonal) { background: var(--o-surface-3) !important; color: var(--o-text) !important; }
+html.orbit-yt :is(.yt-spec-button-shape-next--tonal, .ytSpecButtonShapeNextTonal):hover { background: var(--o-active) !important; }
+html.orbit-yt :is(#subscribe-button, yt-subscribe-button-view-model, ytd-subscribe-button-renderer) button:not([aria-label*="Unsubscribe" i]):not(:has(*[class*="subscribed"])) { background: var(--o-accent) !important; color: var(--o-accent-fg) !important; border-color: transparent !important; }
+html.orbit-yt :is(#subscribe-button, yt-subscribe-button-view-model, ytd-subscribe-button-renderer) button:is([aria-pressed="true"], [data-subscribed]) { background: var(--o-surface-3) !important; color: var(--o-text) !important; }
+html.orbit-yt :is(tp-yt-iron-dropdown, tp-yt-paper-dialog, ytd-menu-popup-renderer, ytd-multi-page-menu-renderer) { border-radius: 14px !important; }
+html.orbit-yt :is(ytd-menu-popup-renderer, ytd-multi-page-menu-renderer, tp-yt-paper-dialog) { background: var(--o-surface-2) !important; box-shadow: var(--o-shadow-pop) !important; border: 1px solid var(--o-border-2); overflow: hidden; }
+
+/* ============ watch page ============ */
+html.orbit-yt-chrome ytd-watch-flexy #columns { gap: 0 8px; }
+html.orbit-yt ytd-watch-flexy #player-container-outer, html.orbit-yt ytd-watch-flexy:not([theater]):not([fullscreen]) #player-container-inner, html.orbit-yt ytd-watch-flexy:not([theater]):not([fullscreen]) #ytd-player { border-radius: 18px; }
+html.orbit-yt ytd-watch-flexy:not([theater]):not([fullscreen]) #ytd-player { overflow: hidden; box-shadow: 0 24px 60px rgba(0, 0, 0, .35), 0 0 0 1px var(--o-border); }
+html.orbit-yt ytd-watch-flexy[theater] #full-bleed-container { background: #000 !important; box-shadow: 0 30px 80px rgba(0, 0, 0, .45); }
+html.orbit-yt-chrome ytd-watch-flexy[theater] #full-bleed-container { max-height: calc(100vh - var(--o-top-h, 56px) - 60px) !important; }
+/* immersive: player as wide as the window allows, Up next below it */
+html.orbit-yt-watch-immersive ytd-watch-flexy:not([theater]):not([fullscreen]) #columns { flex-direction: column !important; }
+html.orbit-yt-watch-immersive ytd-watch-flexy:not([theater]):not([fullscreen]) #primary { max-width: min(100%, calc((100vh - var(--o-top-h, 56px) - 140px) * 16 / 9)) !important; margin: 0 auto !important; }
+
+/* metadata */
+html.orbit-yt ytd-watch-metadata { margin-top: 18px !important; }
+html.orbit-yt ytd-watch-metadata #title h1 { font-size: 21px !important; font-weight: 720 !important; letter-spacing: -0.024em !important; line-height: 1.28 !important; color: var(--o-text) !important; }
+html.orbit-yt ytd-watch-metadata #owner { gap: 4px; }
+html.orbit-yt ytd-video-owner-renderer #channel-name a { font-weight: 680 !important; font-size: 15px !important; color: var(--o-text) !important; }
+html.orbit-yt ytd-video-owner-renderer #owner-sub-count { color: var(--o-text-3) !important; font-size: 12px !important; }
+html.orbit-yt ytd-video-owner-renderer #avatar img { border-radius: 50% !important; box-shadow: 0 0 0 2px var(--o-bg), 0 0 0 3px var(--o-border-2); }
+html.orbit-yt ytd-watch-metadata #actions :is(button, a[role="button"]) { border-radius: 999px !important; }
+html.orbit-yt segmented-like-dislike-button-view-model { --orbit-seg: 1; }
+html.orbit-yt like-button-view-model button[aria-pressed="true"] { color: var(--o-accent) !important; }
+html.orbit-yt ytd-watch-metadata #description, html.orbit-yt ytd-watch-metadata #bottom-row #description {
+  background: var(--o-surface) !important; border: 1px solid var(--o-border); border-radius: 16px !important; padding: 2px 4px; transition: border-color var(--o-t, .18s);
+}
+html.orbit-yt ytd-watch-metadata #description:hover { border-color: var(--o-border-2); }
+html.orbit-yt ytd-text-inline-expander :is(#info-container, #info) { color: var(--o-text) !important; font-weight: 650 !important; }
+html.orbit-yt ytd-text-inline-expander :is(#expand, #collapse) { color: var(--o-accent) !important; font-weight: 650 !important; }
+html.orbit-yt ytd-text-inline-expander :is(.yt-core-attributed-string, yt-attributed-string) { line-height: 1.6 !important; }
+
+/* recommendations: sidebar (default), grid below the player, or a compact list */
+html.orbit-yt ytd-watch-next-secondary-results-renderer :is(yt-lockup-view-model, ytd-compact-video-renderer) { display: block; border-radius: 14px; padding: 6px; margin: 0 -6px 4px; transition: background-color var(--o-t-fast, .1s); }
+html.orbit-yt ytd-watch-next-secondary-results-renderer :is(yt-lockup-view-model, ytd-compact-video-renderer):hover { background: var(--o-surface); }
+html.orbit-yt ytd-watch-next-secondary-results-renderer :is(.yt-lockup-metadata-view-model__title, #video-title) { font-size: 13.5px !important; }
+html.orbit-yt-recs-grid ytd-watch-flexy:not([theater]):not([fullscreen]) #columns { flex-direction: column !important; }
+html.orbit-yt-recs-grid ytd-watch-flexy #secondary { width: auto !important; max-width: none !important; min-width: 0 !important; padding: 0 !important; margin-top: 10px; }
+html.orbit-yt-recs-grid ytd-watch-flexy:not([theater]):not([fullscreen]) #primary { margin: 0 auto !important; }
+html.orbit-yt-recs-grid ytd-watch-next-secondary-results-renderer #items { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px 16px; }
+html.orbit-yt-recs-grid ytd-watch-next-secondary-results-renderer #items > :is(yt-related-chip-cloud-renderer, ytd-continuation-item-renderer, ytd-item-section-renderer) { grid-column: 1 / -1; }
+html.orbit-yt-recs-grid ytd-watch-next-secondary-results-renderer :is(yt-lockup-view-model, ytd-compact-video-renderer) { margin: 0; }
+html.orbit-yt-recs-grid ytd-watch-next-secondary-results-renderer .yt-lockup-view-model--horizontal { flex-direction: column !important; }
+html.orbit-yt-recs-grid ytd-watch-next-secondary-results-renderer .yt-lockup-view-model--horizontal .yt-lockup-view-model__content-image { width: 100% !important; max-width: none !important; margin: 0 0 10px !important; }
+html.orbit-yt-recs-list ytd-watch-next-secondary-results-renderer .yt-lockup-view-model__content-image { width: 132px !important; min-width: 132px !important; }
+html.orbit-yt-recs-list ytd-watch-next-secondary-results-renderer :is(.yt-lockup-metadata-view-model__avatar, #avatar) { display: none !important; }
+html.orbit-yt-recs-list ytd-watch-next-secondary-results-renderer :is(yt-lockup-view-model, ytd-compact-video-renderer) { padding: 4px; margin-bottom: 0; }
+html.orbit-yt-recs-list ytd-watch-next-secondary-results-renderer :is(.yt-lockup-metadata-view-model__title, #video-title) { font-size: 12.5px !important; -webkit-line-clamp: 2; }
+
+/* ============ comments ============ */
+html.orbit-yt ytd-comments-header-renderer #count, html.orbit-yt ytd-comments-header-renderer h2 { font-size: 17px !important; font-weight: 720 !important; letter-spacing: -0.02em; color: var(--o-text) !important; }
+html.orbit-yt ytd-comment-simplebox-renderer #placeholder-area { border-radius: 12px; padding: 10px 14px !important; border: 1px solid var(--o-border-2) !important; background: var(--o-surface) !important; color: var(--o-text-3) !important; transition: border-color var(--o-t-fast, .1s); }
+html.orbit-yt ytd-comment-simplebox-renderer #placeholder-area:hover { border-color: var(--o-accent-line) !important; }
+html.orbit-yt ytd-commentbox { background: var(--o-surface); border: 1px solid var(--o-accent-line); border-radius: 14px; padding: 10px 12px; box-shadow: 0 0 0 3px var(--o-accent-soft); }
+html.orbit-yt ytd-commentbox #submit-button button:not([disabled]) { background: var(--o-accent) !important; color: var(--o-accent-fg) !important; }
+html.orbit-yt :is(ytd-comment-view-model, ytd-comment-renderer) #author-text { color: var(--o-text) !important; font-weight: 650 !important; font-size: 13px !important; }
+html.orbit-yt :is(ytd-comment-view-model, ytd-comment-renderer) #published-time-text a { color: var(--o-text-3) !important; font-size: 12px !important; }
+html.orbit-yt :is(ytd-comment-view-model, ytd-comment-renderer) #content-text { color: var(--o-text) !important; font-size: var(--o-fs, 14px) !important; line-height: var(--o-lh, 1.55) !important; font-family: var(--o-font-read, inherit) !important; }
+html.orbit-yt :is(ytd-comment-view-model, ytd-comment-renderer) #author-thumbnail img { border-radius: 50% !important; }
+html.orbit-yt :is(ytd-comment-view-model, ytd-comment-renderer) #like-button button[aria-pressed="true"] { color: var(--o-accent) !important; }
+html.orbit-yt :is(ytd-comment-view-model, ytd-comment-renderer) :is(#author-comment-badge, ytd-author-comment-badge-renderer) { background: var(--o-accent-soft) !important; border-radius: 999px !important; color: var(--o-text) !important; }
+html.orbit-yt ytd-comment-replies-renderer #more-replies button, html.orbit-yt ytd-comment-replies-renderer #less-replies button { color: var(--o-accent) !important; font-weight: 650 !important; }
+/* threaded: every thread is a card; replies hang off a guide line */
+html.orbit-yt-comments-threaded ytd-comment-thread-renderer { background: var(--o-surface); border: 1px solid var(--o-border); border-radius: 16px; padding: 14px 16px 8px; margin-bottom: 10px !important; transition: border-color var(--o-t, .18s); }
+html.orbit-yt-comments-threaded ytd-comment-thread-renderer:hover { border-color: var(--o-border-2); }
+html.orbit-yt-comments-threaded ytd-comment-thread-renderer #replies { margin-left: 18px; padding-left: 14px; border-left: 2px solid var(--o-border-2); }
+html.orbit-yt-comments-threaded ytd-comment-thread-renderer #replies:hover { border-left-color: var(--o-accent-line); }
+/* compact: no cards, smaller avatars, tighter rows */
+html.orbit-yt-comments-compact ytd-comment-thread-renderer { margin-bottom: 4px !important; padding: 6px 0; border-bottom: 1px solid var(--o-border); }
+html.orbit-yt-comments-compact :is(ytd-comment-view-model, ytd-comment-renderer) #author-thumbnail :is(img, yt-img-shadow, button) { width: 24px !important; height: 24px !important; }
+html.orbit-yt-comments-compact :is(ytd-comment-view-model, ytd-comment-renderer) #content-text { font-size: calc(var(--o-fs, 14px) - 1px) !important; }
+/* collapse comments until asked for */
+html.orbit-yt-collapse-comments:not(.orbit-yt-comments-open) ytd-comments#comments #contents { display: none !important; }
+html.orbit-yt-collapse-comments:not(.orbit-yt-comments-open) ytd-comments-header-renderer :is(#count, h2) { cursor: pointer; }
+html.orbit-yt-collapse-comments:not(.orbit-yt-comments-open) ytd-comments-header-renderer :is(#count, h2)::after { content: "  ·  Show"; color: var(--o-accent); font-size: 13px; font-weight: 650; }
+
+/* ============ Shorts ============ */
+html.orbit-yt ytd-shorts #player-container, html.orbit-yt ytd-reel-video-renderer #player-container { border-radius: 22px !important; overflow: hidden; }
+html.orbit-yt ytd-reel-video-renderer #actions :is(button, .yt-spec-button-shape-next) { background: var(--o-surface-2) !important; color: var(--o-text) !important; border: 1px solid var(--o-border); transition: transform var(--o-t-fast, .1s), background-color var(--o-t-fast, .1s); }
+html.orbit-yt ytd-reel-video-renderer #actions :is(button, .yt-spec-button-shape-next):hover { background: var(--o-active) !important; transform: scale(1.06); }
+html.orbit-yt ytd-reel-video-renderer #actions button[aria-pressed="true"] { background: var(--o-accent) !important; color: var(--o-accent-fg) !important; border-color: transparent; }
+html.orbit-yt ytd-shorts #navigation-container button { background: var(--o-surface-2) !important; border: 1px solid var(--o-border-2) !important; color: var(--o-text) !important; }
+html.orbit-yt ytd-engagement-panel-section-list-renderer { border-radius: 18px !important; overflow: hidden; border: 1px solid var(--o-border); background: var(--o-surface) !important; }
+html.orbit-yt-shorts-focused ytd-shorts { background: radial-gradient(60% 55% at 50% 45%, color-mix(in srgb, var(--o-accent) 18%, transparent), transparent 72%), var(--o-bg) !important; }
+html.orbit-yt-shorts-focused ytd-shorts ytd-reel-video-renderer[is-active] #player-container { box-shadow: 0 30px 80px rgba(0, 0, 0, .45), 0 0 0 1px var(--o-border-2); }
+html.orbit-yt-shorts-focused ytd-shorts ytd-reel-video-renderer:not([is-active]) #player-container { opacity: .55; transform: scale(.96); transition: opacity .3s ease, transform .3s ease; }
+
+/* ============ search ============ */
+html.orbit-yt ytd-search :is(yt-lockup-view-model, ytd-video-renderer) { display: block; border-radius: 18px; padding: 10px; margin: 0 -10px 10px; transition: background-color var(--o-t, .18s); }
+html.orbit-yt ytd-search :is(yt-lockup-view-model, ytd-video-renderer):hover { background: var(--o-surface); }
+html.orbit-yt ytd-search .yt-lockup-view-model--horizontal .yt-lockup-view-model__content-image { width: clamp(240px, 38%, 420px) !important; max-width: none !important; }
+html.orbit-yt ytd-search :is(.yt-lockup-metadata-view-model__title, #video-title) { font-size: 17px !important; font-weight: 680 !important; }
+html.orbit-yt:not(.orbit-yt-descriptions) ytd-search .yt-content-metadata-view-model__metadata-row:nth-child(n+3), html.orbit-yt:not(.orbit-yt-descriptions) :is(.metadata-snippet-container, #description-text) { display: none !important; }
+html.orbit-yt.orbit-yt-descriptions ytd-search .yt-content-metadata-view-model__metadata-row:nth-child(n+3) { color: var(--o-text-3) !important; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.orbit-yt ytd-search ytd-channel-renderer { background: var(--o-surface); border: 1px solid var(--o-border); border-radius: 18px; padding: 8px 12px; margin-bottom: 14px; display: block; }
+html.orbit-yt ytd-search-header-renderer { padding: 6px 0 10px !important; }
+
+/* ============ channels, playlists, history ============ */
+html.orbit-yt :is(yt-page-header-renderer, yt-page-header-view-model) yt-image-banner-view-model, html.orbit-yt :is(yt-page-header-renderer, yt-page-header-view-model) yt-image-banner-view-model img { border-radius: 18px !important; }
+html.orbit-yt :is(yt-page-header-renderer, yt-page-header-view-model) h1 { font-weight: 760 !important; letter-spacing: -0.03em !important; color: var(--o-text) !important; }
+html.orbit-yt yt-tab-shape[aria-selected="true"], html.orbit-yt yt-tab-shape[aria-selected="true"] * { color: var(--o-text) !important; }
+html.orbit-yt yt-tab-shape .yt-tab-shape-wiz__tab-bar--tab-bar-selected, html.orbit-yt yt-tab-group-shape [class*="tab-bar-selected"] { background: var(--o-accent) !important; height: 3px !important; border-radius: 3px; }
+html.orbit-yt ytd-browse[page-subtype="playlist"] :is(yt-page-header-renderer, ytd-playlist-header-renderer) { --orbit-ph: 1; }
+html.orbit-yt ytd-playlist-video-renderer { border-radius: 14px; padding: 6px 8px !important; transition: background-color var(--o-t-fast, .1s); }
+html.orbit-yt ytd-playlist-video-renderer:hover { background: var(--o-surface) !important; }
+html.orbit-yt ytd-playlist-video-renderer #index { color: var(--o-text-3) !important; font-variant-numeric: tabular-nums; }
+html.orbit-yt ytd-browse[page-subtype="history"] ytd-item-section-renderer #header :is(#title, h2, yt-formatted-string) { font-size: 16px !important; font-weight: 700 !important; color: var(--o-text) !important; letter-spacing: -0.015em; }
+html.orbit-yt ytd-browse-feed-actions-renderer { background: var(--o-surface); border: 1px solid var(--o-border); border-radius: 16px; padding: 10px; }
+html.orbit-yt ytd-miniplayer { border-radius: 16px !important; overflow: hidden; box-shadow: var(--o-shadow-pop) !important; border: 1px solid var(--o-border-2); }
+
+/* scrollbars */
+html.orbit-yt { scrollbar-color: var(--o-border-2, #333) transparent; }
